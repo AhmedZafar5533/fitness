@@ -1,0 +1,33 @@
+User-agent: *
+
+# Disallow Dashboard & Protected Routes
+Disallow: /dashboard/
+Disallow: /admin
+Disallow: /goto/
+Disallow: /vendor/
+Disallow: /checkout/
+Disallow: /profile
+Disallow: /edit/
+Disallow: /test
+Disallow: /onboarding
+
+# Disallow Auth & Verification Pages
+Disallow: /login
+Disallow: /signup
+Disallow: /verify
+Disallow: /reset-password/
+Disallow: /forget-password
+
+# Allow Public Pages
+Allow: /
+Allow: /pricing
+Allow: /medical
+Allow: /appoint
+Allow: /services
+Allow: /view/
+Allow: /contact-us
+Allow: /providers/
+Allow: /vendor-details/
+
+# Optional: Sitemap
+Sitemap: https://yourdomain.com/sitemap.xml
