@@ -1208,20 +1208,6 @@ export default function ModernDashboard() {
 
           {/* Quick Stats Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Weather Card */}
-            <div className="bg-white rounded-2xl p-4 border border-yellow-200 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-start gap-3">
-                <div className="p-2 bg-yellow-50 rounded-xl">
-                  <Sun className="w-6 h-6 text-yellow-500" />
-                </div>
-                <div className="flex-1">
-                  <div className="text-2xl font-bold text-gray-900">29°C</div>
-                  <p className="text-xs text-gray-600 mt-1 leading-relaxed">
-                    Hot weather, stay hydrated!
-                  </p>
-                </div>
-              </div>
-            </div>
 
             {/* Date Card */}
             <div className="bg-white rounded-2xl p-4 border border-orange-200 shadow-sm hover:shadow-md transition-shadow">
@@ -2332,67 +2318,6 @@ export default function ModernDashboard() {
             </div>
           </div>
 
-          {/* Quick Actions Footer */}
-          <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
-              Quick Actions
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Link
-                to="/form"
-                className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-all group"
-              >
-                <div className="p-2 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
-                  <Plus className="w-5 h-5 text-purple-600" />
-                </div>
-                <div>
-                  <div className="font-semibold text-gray-900">Log Meal</div>
-                  <div className="text-xs text-gray-500">Add new meal</div>
-                </div>
-              </Link>
-
-              <Link
-                to="/meal-planner"
-                className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all group"
-              >
-                <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
-                  <Calendar className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <div className="font-semibold text-gray-900">Plan Meals</div>
-                  <div className="text-xs text-gray-500">Schedule ahead</div>
-                </div>
-              </Link>
-
-              <Link
-                to="/history"
-                className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-all group"
-              >
-                <div className="p-2 bg-green-100 rounded-lg group-hover:bg-green-200 transition-colors">
-                  <BarChart3 className="w-5 h-5 text-green-600" />
-                </div>
-                <div>
-                  <div className="font-semibold text-gray-900">
-                    View History
-                  </div>
-                  <div className="text-xs text-gray-500">Past meals</div>
-                </div>
-              </Link>
-
-              <Link
-                to="/settings"
-                className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 hover:border-orange-300 hover:bg-orange-50 transition-all group"
-              >
-                <div className="p-2 bg-orange-100 rounded-lg group-hover:bg-orange-200 transition-colors">
-                  <Settings className="w-5 h-5 text-orange-600" />
-                </div>
-                <div>
-                  <div className="font-semibold text-gray-900">Settings</div>
-                  <div className="text-xs text-gray-500">Preferences</div>
-                </div>
-              </Link>
-            </div>
-          </div>
         </main>
       </div>
     </div>

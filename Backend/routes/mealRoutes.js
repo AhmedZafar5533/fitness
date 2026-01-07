@@ -656,6 +656,145 @@ router.get("/stats", async (req, res) => {
   }
 });
 
+// GET /meals/history - Get meal history for a date range
+router.get("/history", async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { startDate, endDate } = req.query;
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({ message: "startDate and endDate are required" });
+    }
+
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    // Get all eaten meals in the date range
+    const meals = await Meal.find({
+      userId,
+      status: "eaten",
+      time: { $gte: start, $lte: end },
+    }).sort({ time: -1 });
+
+    // Get daily stats for each day in the range
+    const dailyStats = await NutritionStats.find({
+      userId,
+      createdAt: { $gte: start, $lte: end },
+    }).sort({ createdAt: 1 });
+
+    // Create a map for easier access on frontend
+    const statsMap = {};
+    dailyStats.forEach((stat) => {
+      const dateKey = stat.createdAt.toISOString().split('T')[0];
+      statsMap[dateKey] = stat;
+    });
+
+    res.status(200).json({
+      message: "Meal history fetched successfully",
+      data: {
+        meals,
+        dailyStats: statsMap,
+        totalMeals: meals.length,
+        daysWithData: dailyStats.length,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching meal history:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+// GET /meals/history/stats - Get aggregated stats for a date range
+router.get("/history/stats", async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { startDate, endDate } = req.query;
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({ message: "startDate and endDate are required" });
+    }
+
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    // Aggregate stats for the period
+    const aggregatedStats = await NutritionStats.aggregate([
+      {
+        $match: {
+          userId: userId,
+          createdAt: { $gte: start, $lte: end },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalCalories: { $sum: "$calories" },
+          totalProtein: { $sum: "$protein_g" },
+          totalCarbs: { $sum: "$carbs_g" },
+          totalFat: { $sum: "$fat_g" },
+          totalFiber: { $sum: "$fiber_g" },
+          totalSugar: { $sum: "$sugar_g" },
+          totalSodium: { $sum: "$sodium_mg" },
+          totalWater: { $sum: "$water_ml" },
+          avgCalories: { $avg: "$calories" },
+          avgProtein: { $avg: "$protein_g" },
+          avgCarbs: { $avg: "$carbs_g" },
+          avgFat: { $avg: "$fat_g" },
+          daysTracked: { $sum: 1 },
+          totalBreakfastCalories: { $sum: "$breakFastCalories" },
+          totalLunchCalories: { $sum: "$lunchCalories" },
+          totalDinnerCalories: { $sum: "$dinnerCalories" },
+          totalSnackCalories: { $sum: "$snackCalories" },
+        },
+      },
+    ]);
+
+    // Get meal count for the period
+    const mealCount = await Meal.countDocuments({
+      userId,
+      status: "eaten",
+      time: { $gte: start, $lte: end },
+    });
+
+    const stats = aggregatedStats[0] || {
+      totalCalories: 0,
+      totalProtein: 0,
+      totalCarbs: 0,
+      totalFat: 0,
+      totalFiber: 0,
+      totalSugar: 0,
+      totalSodium: 0,
+      totalWater: 0,
+      avgCalories: 0,
+      avgProtein: 0,
+      avgCarbs: 0,
+      avgFat: 0,
+      daysTracked: 0,
+      totalBreakfastCalories: 0,
+      totalLunchCalories: 0,
+      totalDinnerCalories: 0,
+      totalSnackCalories: 0,
+    };
+
+    res.status(200).json({
+      message: "Aggregated stats fetched successfully",
+      data: {
+        ...stats,
+        totalMeals: mealCount,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching aggregated stats:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
 router.get("/meals", async (req, res) => {
   try {
     const userId = req.user._id;

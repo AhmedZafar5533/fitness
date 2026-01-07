@@ -14,6 +14,7 @@ import ResetPasswordPage from "./pages/meal/PasswordReset";
 
 import MainLayout from "./Layouts/MainLayout";
 import { useAuthStore } from "./store/authStore";
+import MealHistory from "./pages/meal/MealHistory";
 
 const LoadingScreen = () => (
   <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -103,6 +104,7 @@ const App = () => {
           <Route path="/meals" element={<MealUploadPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/form" element={<MealTrackingForm />} />
+          <Route path="/history" element={<MealHistory />} />
         </Route>
 
         <Route
@@ -113,6 +115,7 @@ const App = () => {
             </ProtectedRoute>
           }
         />
+
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

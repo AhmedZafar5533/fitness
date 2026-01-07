@@ -18,6 +18,13 @@ export const useMealStore = create((set, get) => ({
   stats: null,
   isLoading: false,
   error: null,
+  // State additions
+mealHistory: {
+  meals: [],
+  dailyStats: {},
+  weeklyStats: null,
+},
+historyLoading: false,
 
   // ============= MEAL PREDICTION (Image Upload) =============
   
@@ -426,6 +433,136 @@ rescheduleUpcomingMeal: async (mealId, newScheduledTime) => {
       return null;
     }
   },
+  // Add these to your useMealStore
+
+
+
+// ============= MEAL HISTORY =============
+
+// GET /meals/history - Get meal history for date range
+getMealHistory: async (startDate, endDate) => {
+  try {
+    set({ historyLoading: true, error: null });
+    
+    const response = await api.get("/meals/history", {
+      params: { 
+        startDate: startDate.toISOString(), 
+        endDate: endDate.toISOString() 
+      },
+    });
+    
+    console.log("Fetched meal history:", response.data.data);
+    
+    set((state) => ({
+      mealHistory: {
+        ...state.mealHistory,
+        meals: response.data.data.meals,
+        dailyStats: response.data.data.dailyStats,
+      },
+      historyLoading: false,
+    }));
+    
+    return response.data.data;
+  } catch (error) {
+    set({
+      error: error.response?.data?.message || "Failed to fetch meal history",
+      historyLoading: false,
+    });
+    console.error("Error fetching meal history:", error);
+    return { meals: [], dailyStats: {} };
+  }
+},
+
+// GET /meals/history/stats - Get aggregated stats for date range
+getWeeklyStats: async (startDate, endDate) => {
+  try {
+    set({ historyLoading: true, error: null });
+    
+    const response = await api.get("/meals/history/stats", {
+      params: { 
+        startDate: startDate.toISOString(), 
+        endDate: endDate.toISOString() 
+      },
+    });
+    
+    console.log("Fetched weekly stats:", response.data.data);
+    
+    set((state) => ({
+      mealHistory: {
+        ...state.mealHistory,
+        weeklyStats: response.data.data,
+      },
+      historyLoading: false,
+    }));
+    
+    return response.data.data;
+  } catch (error) {
+    set({
+      error: error.response?.data?.message || "Failed to fetch weekly stats",
+      historyLoading: false,
+    });
+    console.error("Error fetching weekly stats:", error);
+    return null;
+  }
+},
+
+// Combined fetch for meal history page
+fetchMealHistoryData: async (startDate, endDate) => {
+  try {
+    set({ historyLoading: true, error: null });
+    
+    const [historyResponse, statsResponse] = await Promise.all([
+      api.get("/meals/history", {
+        params: { 
+          startDate: startDate.toISOString(), 
+          endDate: endDate.toISOString() 
+        },
+      }),
+      api.get("/meals/history/stats", {
+        params: { 
+          startDate: startDate.toISOString(), 
+          endDate: endDate.toISOString() 
+        },
+      }),
+    ]);
+    
+    const historyData = historyResponse.data.data;
+    const statsData = statsResponse.data.data;
+    
+    set({
+      mealHistory: {
+        meals: historyData.meals,
+        dailyStats: historyData.dailyStats,
+        weeklyStats: statsData,
+      },
+      historyLoading: false,
+    });
+    
+    return {
+      meals: historyData.meals,
+      dailyStats: historyData.dailyStats,
+      weeklyStats: statsData,
+    };
+  } catch (error) {
+    set({
+      error: error.response?.data?.message || "Failed to fetch meal history",
+      historyLoading: false,
+    });
+    console.error("Error fetching meal history data:", error);
+    return { meals: [], dailyStats: {}, weeklyStats: null };
+  }
+},
+
+// Clear meal history
+clearMealHistory: () => {
+  set({
+    mealHistory: {
+      meals: [],
+      dailyStats: {},
+      weeklyStats: null,
+    },
+  });
+},
 
   // ============= GOALS =============
 

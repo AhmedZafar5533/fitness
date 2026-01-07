@@ -8,6 +8,7 @@ import {
   X,
   User,
   LogOut,
+  Calendar
 } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
@@ -20,6 +21,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
     { icon: User, label: "profile", path: "/profile" },
     { icon: Home, label: "dashboard", path: "/home" },
     { icon: Utensils, label: "Add Meal", path: "/form" },
+    { icon:  Calendar, label: "Meal History", path: "/history" },
     { icon: MessageCircle, label: "Nutrition Genie", path: "/chat" },
 
   ];
