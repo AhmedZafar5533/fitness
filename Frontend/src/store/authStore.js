@@ -28,6 +28,7 @@ export const useAuthStore = create((set) => ({
       throw error;
     }
   },
+
   sendRegisterRequest: async (userData) => {
     try {
       console.log("Sending registration data:", userData);
@@ -46,6 +47,7 @@ export const useAuthStore = create((set) => ({
       throw error;
     }
   },
+
   sendLoginRequest: async (user) => {
     try {
       const response = await axios.post(`${API_URL}/auth/login`, user, {
@@ -54,6 +56,7 @@ export const useAuthStore = create((set) => ({
 
       if (response.status === 200) {
         toast.success("Login successful!");
+        set({ isAuthenticated: true, user: response.data.user });
         return true;
       }
     } catch (error) {
@@ -69,12 +72,52 @@ export const useAuthStore = create((set) => ({
         withCredentials: true,
       });
       if (response.status === 200) {
+        set({ isAuthenticated: false, user: null });
         toast.success("Logout successful!");
         return true;
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Logout failed");
       console.error("Logout error:", error);
+      throw error;
+    }
+  },
+
+  // ---- Forgot Password Actions ----
+
+  sendForgotPasswordRequest: async ({ email }) => {
+    try {
+      const response = await axios.post(`${API_URL}/auth/forgot-password`, {
+        email,
+      });
+
+      if (response.status === 200) {
+        toast.success("Reset link sent to your email!");
+        return true;
+      }
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "Failed to send reset email"
+      );
+      console.error("Forgot password error:", error);
+      throw error;
+    }
+  },
+
+  sendResetPasswordRequest: async (token, newPassword) => {
+    try {
+      const response = await axios.post(
+        `${API_URL}/auth/reset-password/${token}`,
+        { newPassword }
+      );
+
+      if (response.status === 200) {
+        toast.success("Password reset successfully!");
+        return true;
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to reset password");
+      console.error("Reset password error:", error);
       throw error;
     }
   },

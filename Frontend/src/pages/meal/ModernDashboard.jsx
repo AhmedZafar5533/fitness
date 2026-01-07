@@ -35,6 +35,7 @@ import {
   PieChart,
   Salad,
   UtensilsCrossed,
+  AlertTriangle,
 } from "lucide-react";
 import {
   BarChart,
@@ -47,7 +48,6 @@ import {
 import { Link } from "react-router-dom";
 import { useMealStore } from "../../store/mealStore";
 
-// Empty State Component - Reusable
 const EmptyStateCard = ({
   icon: Icon,
   title,
@@ -94,10 +94,88 @@ const EmptyStateCard = ({
   </div>
 );
 
-// Loading Skeleton Component
 const LoadingSkeleton = ({ className }) => (
   <div className={`animate-pulse bg-gray-200 rounded ${className}`}></div>
 );
+
+const DeleteConfirmationModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  mealName,
+  isDeleting,
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      ></div>
+
+      <div className="relative bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl transform transition-all">
+        <div className="flex flex-col items-center text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+            <AlertTriangle className="w-8 h-8 text-red-600" />
+          </div>
+
+          <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Meal?</h3>
+
+          <p className="text-gray-600 mb-2">
+            Are you sure you want to delete this meal?
+          </p>
+
+          {mealName && (
+            <p className="text-sm font-semibold text-gray-900 bg-gray-100 px-4 py-2 rounded-lg mb-4">
+              "{mealName}"
+            </p>
+          )}
+
+          <p className="text-sm text-gray-500 mb-6">
+            This action cannot be undone. All nutritional data associated with
+            this meal will be removed from your daily stats.
+          </p>
+
+          <div className="flex gap-3 w-full">
+            <button
+              onClick={onClose}
+              disabled={isDeleting}
+              className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={isDeleting}
+              className="flex-1 px-6 py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isDeleting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  Yes, Delete
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        <button
+          onClick={onClose}
+          disabled={isDeleting}
+          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+    </div>
+  );
+};
 
 export default function ModernDashboard() {
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -115,7 +193,10 @@ export default function ModernDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [hasData, setHasData] = useState(false);
 
-  // Macros state with actual values
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [mealToDelete, setMealToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const [macros, setMacros] = useState([
     { name: "Protein", value: 0, unit: "g", color: "#F97316" },
     { name: "Fat", value: 0, unit: "g", color: "#EF4444" },
@@ -125,7 +206,6 @@ export default function ModernDashboard() {
     { name: "Sodium", value: 0, unit: "mg", color: "#6B7280" },
   ]);
 
-  // Meal history state for today
   const [historyMeals, setHistoryMeals] = useState([
     { name: "Breakfast", current: 0, icon: "🍳" },
     { name: "Lunch", current: 0, icon: "🍜" },
@@ -137,13 +217,12 @@ export default function ModernDashboard() {
     saveGoal: setGoal,
     getStats,
     stats,
-    updateWater,
     meals,
     getMeals,
     deleteMeal,
+    addWaterOrCalories,
   } = useMealStore();
 
-  // Fetch stats and meals on mount
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -159,10 +238,8 @@ export default function ModernDashboard() {
     fetchData();
   }, []);
 
-  // Update local state when stats change
   useEffect(() => {
     if (stats) {
-      // Check if there's any meaningful data
       const hasMealData =
         stats.calories > 0 ||
         stats.protein_g > 0 ||
@@ -171,17 +248,14 @@ export default function ModernDashboard() {
 
       setHasData(hasMealData);
 
-      // Set calories - default to 2000 if no goal
       setCurrentCalories(stats.calories || 0);
       setDailyGoal(stats.calorie_goal || 2000);
       setTempGoal(stats.calorie_goal || 2000);
 
-      // Set water - default to 1000 if no goal
       setWaterIntake(stats.water_ml || 0);
       setWaterGoal(stats.water_goal_ml || 1000);
       setTempWaterGoal(stats.water_goal_ml || 1000);
 
-      // Set macros with actual values
       setMacros([
         {
           name: "Protein",
@@ -216,7 +290,6 @@ export default function ModernDashboard() {
         },
       ]);
 
-      // Set meal history for today
       setHistoryMeals([
         {
           name: "Breakfast",
@@ -230,7 +303,6 @@ export default function ModernDashboard() {
     }
   }, [stats]);
 
-  // Format today's date
   const formatDate = () => {
     const today = new Date();
     const options = {
@@ -242,7 +314,6 @@ export default function ModernDashboard() {
     return today.toLocaleDateString("en-US", options);
   };
 
-  // Get meal type icon
   const getMealIcon = (mealType) => {
     const icons = {
       breakfast: "🍳",
@@ -253,7 +324,6 @@ export default function ModernDashboard() {
     return icons[mealType?.toLowerCase()] || "🍴";
   };
 
-  // Get meal type color
   const getMealTypeColor = (mealType) => {
     const colors = {
       breakfast: "bg-yellow-50 border-yellow-200",
@@ -264,7 +334,6 @@ export default function ModernDashboard() {
     return colors[mealType?.toLowerCase()] || "bg-gray-50 border-gray-200";
   };
 
-  // Format time from date
   const formatTime = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
@@ -294,17 +363,25 @@ export default function ModernDashboard() {
   ];
 
   const addWater = async (amount) => {
-    const newIntake = Math.min(waterIntake + amount, waterGoal);
+    const newIntake = waterIntake + amount;
+    console.log(waterIntake, amount, newIntake);
     setWaterIntake(newIntake);
-    if (updateWater) {
-      await updateWater(newIntake);
+    if (newIntake) {
+      console.log("we in");
+      await addWaterOrCalories({
+        type: "water",
+        quantity: amount,
+      });
     }
   };
 
   const resetWater = async () => {
     setWaterIntake(0);
-    if (updateWater) {
-      await updateWater(0);
+    if (waterIntake > 0) {
+      await addWaterOrCalories({
+        type: "water",
+        quantity: 0,
+      });
     }
   };
 
@@ -322,25 +399,48 @@ export default function ModernDashboard() {
     setEditingWaterGoal(false);
   };
 
-  const addCalories = (amount) => {
-    setCurrentCalories((prev) => Math.min(prev + amount, dailyGoal));
+  const addCalories = async (amount) => {
+    const success = await addWaterOrCalories({
+      type: "calories",
+      quantity: amount,
+    });
+    if (success) setCurrentCalories((prev) => prev + amount);
   };
 
-  const handleDeleteMeal = async (mealId) => {
-    if (deleteMeal) {
-      await deleteMeal(mealId);
-      await getStats();
-      await getMeals();
+  const openDeleteModal = (meal) => {
+    setMealToDelete(meal);
+    setDeleteModalOpen(true);
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModalOpen(false);
+    setMealToDelete(null);
+  };
+
+  const confirmDeleteMeal = async () => {
+    if (!mealToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      if (deleteMeal) {
+        await deleteMeal(mealToDelete._id);
+        console.log("Deleted meal with ID:", mealToDelete._id);
+        await getStats();
+        await getMeals();
+      }
+    } catch (error) {
+      console.error("Error deleting meal:", error);
+    } finally {
+      setIsDeleting(false);
+      closeDeleteModal();
     }
   };
 
-  // Calculate total calories from today's meals
   const totalMealCalories = historyMeals.reduce(
     (acc, meal) => acc + meal.current,
     0
   );
 
-  // Filter today's meals
   const getTodaysMeals = () => {
     if (!meals || !Array.isArray(meals)) return [];
 
@@ -356,22 +456,24 @@ export default function ModernDashboard() {
 
   const todaysMeals = getTodaysMeals();
 
-  // Check if macros have any values
   const hasMacroData = macros.some((macro) => macro.value > 0);
 
-  // Check if meal history has any values
   const hasMealHistoryData = historyMeals.some((meal) => meal.current > 0);
 
-  // Check if there's any chart data
   const hasChartData = overviewData.some((d) => d.kcal > 0);
 
   return (
     <div className="min-h-screen bg-[#FFF5F5]">
-      {/* Main Content */}
+      <DeleteConfirmationModal
+        isOpen={deleteModalOpen}
+        onClose={closeDeleteModal}
+        onConfirm={confirmDeleteMeal}
+        mealName={mealToDelete?.name || mealToDelete?.mealName}
+        isDeleting={isDeleting}
+      />
+
       <div>
-        {/* Main Content */}
         <main className="p-6 space-y-6">
-          {/* Welcome Banner for Empty State */}
           {!isLoading && !hasData && todaysMeals.length === 0 && (
             <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-3xl p-8 text-white shadow-lg">
               <div className="flex flex-col md:flex-row items-center justify-between gap-6">
@@ -395,9 +497,7 @@ export default function ModernDashboard() {
             </div>
           )}
 
-          {/* Top Info Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Weather Widget */}
             <div className="bg-white rounded-2xl p-4 border border-yellow-200 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-start gap-3">
                 <div className="p-2 bg-yellow-50 rounded-xl">
@@ -412,7 +512,6 @@ export default function ModernDashboard() {
               </div>
             </div>
 
-            {/* Date Card */}
             <div className="bg-white rounded-2xl p-4 border border-orange-200 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-orange-50 rounded-xl">
@@ -429,7 +528,6 @@ export default function ModernDashboard() {
               </div>
             </div>
 
-            {/* Water Intake */}
             <div className="bg-white rounded-2xl p-4 border border-blue-200 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
@@ -476,7 +574,6 @@ export default function ModernDashboard() {
                 </div>
               </div>
 
-              {/* Progress Bar */}
               <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-3">
                 <div
                   className="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-500"
@@ -508,7 +605,6 @@ export default function ModernDashboard() {
               </div>
             </div>
 
-            {/* Quick Stats Card - New */}
             <div className="bg-white rounded-2xl p-4 border border-purple-200 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-start gap-3">
                 <div className="p-2 bg-purple-50 rounded-xl">
@@ -534,9 +630,7 @@ export default function ModernDashboard() {
             </div>
           </div>
 
-          {/* Main Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Today Mission - Large Circular Progress */}
             <div className="lg:col-span-5 bg-white rounded-3xl p-8 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between mb-8">
                 <h3 className="text-xl font-bold text-gray-900">
@@ -579,7 +673,6 @@ export default function ModernDashboard() {
                 </div>
               ) : currentCalories === 0 && !hasData ? (
                 <div className="relative flex flex-col items-center justify-center mb-8">
-                  {/* Empty State Circular Progress */}
                   <svg className="w-80 h-80" viewBox="0 0 320 320">
                     <circle
                       cx="160"
@@ -626,7 +719,6 @@ export default function ModernDashboard() {
                     />
                   </svg>
 
-                  {/* Empty State Center Content */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <div className="w-14 h-14 bg-purple-50 rounded-full flex items-center justify-center mb-3">
                       <Utensils className="w-7 h-7 text-purple-400" />
@@ -649,9 +741,7 @@ export default function ModernDashboard() {
               ) : (
                 <>
                   <div className="relative flex items-center justify-center mb-8">
-                    {/* Concentric Circles */}
                     <svg className="w-80 h-80" viewBox="0 0 320 320">
-                      {/* Outer rings */}
                       <circle
                         cx="160"
                         cy="160"
@@ -685,7 +775,6 @@ export default function ModernDashboard() {
                         strokeWidth="4"
                       />
 
-                      {/* Progress circle */}
                       <circle
                         cx="160"
                         cy="160"
@@ -714,7 +803,6 @@ export default function ModernDashboard() {
                       </defs>
                     </svg>
 
-                    {/* Center Content */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
                       <Flame className="w-10 h-10 text-orange-500 mb-2" />
                       <div className="text-4xl font-bold text-gray-900">
@@ -727,33 +815,10 @@ export default function ModernDashboard() {
                       </div>
                     </div>
                   </div>
-
-                  {/* Quick Add Buttons */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => addCalories(50)}
-                      className="flex-1 px-4 py-2.5 bg-purple-50 text-purple-600 rounded-xl text-sm font-semibold hover:bg-purple-100 transition-colors"
-                    >
-                      +50 kcal
-                    </button>
-                    <button
-                      onClick={() => addCalories(100)}
-                      className="flex-1 px-4 py-2.5 bg-purple-50 text-purple-600 rounded-xl text-sm font-semibold hover:bg-purple-100 transition-colors"
-                    >
-                      +100 kcal
-                    </button>
-                    <button
-                      onClick={() => addCalories(200)}
-                      className="flex-1 px-4 py-2.5 bg-purple-50 text-purple-600 rounded-xl text-sm font-semibold hover:bg-purple-100 transition-colors"
-                    >
-                      +200 kcal
-                    </button>
-                  </div>
                 </>
               )}
             </div>
 
-            {/* Macros List */}
             <div className="lg:col-span-3 space-y-4">
               <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                 <h3 className="text-lg font-bold text-gray-900 mb-4">
@@ -826,7 +891,6 @@ export default function ModernDashboard() {
               </div>
             </div>
 
-            {/* Today's Meal Breakdown */}
             <div className="lg:col-span-4 bg-white rounded-2xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-bold text-gray-900">
@@ -924,9 +988,7 @@ export default function ModernDashboard() {
             </div>
           </div>
 
-          {/* Bottom Section */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Today's Meal History */}
             <div className="lg:col-span-8 bg-white rounded-2xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between mb-6">
                 <div>
@@ -1011,7 +1073,9 @@ export default function ModernDashboard() {
                           )}
                         </div>
 
-                        <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0 pr-8">
+                          {" "}
+                          {/* Added pr-8 for delete button space */}
                           <h4 className="font-semibold text-gray-900 truncate">
                             {meal.name || meal.mealName || "Unnamed Meal"}
                           </h4>
@@ -1055,11 +1119,18 @@ export default function ModernDashboard() {
                         </div>
                       )}
 
+                      {/* Delete button - Always visible on mobile, hover on desktop */}
                       <button
-                        onClick={() => handleDeleteMeal(meal._id)}
-                        className="absolute top-2 right-2 p-1.5 bg-red-100 text-red-600 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-200"
+                        onClick={() => openDeleteModal(meal)}
+                        className="absolute top-2 right-2 p-2 bg-red-100 text-red-600 rounded-lg 
+                 opacity-100 md:opacity-0 md:group-hover:opacity-100 
+                 transition-all duration-200 hover:bg-red-200 active:bg-red-300 
+                 active:scale-95 touch-manipulation"
+                        aria-label={`Delete ${
+                          meal.name || meal.mealName || "meal"
+                        }`}
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   ))}
@@ -1067,7 +1138,6 @@ export default function ModernDashboard() {
               )}
             </div>
 
-            {/* Overview Chart */}
             <div className="lg:col-span-4 bg-white rounded-2xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
               <div className="mb-6">
                 <h3 className="text-lg font-bold text-gray-900">

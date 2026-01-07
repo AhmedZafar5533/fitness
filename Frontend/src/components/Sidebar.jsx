@@ -19,7 +19,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
   const sidebarItems = [
     { icon: User, label: "profile", path: "/profile" },
     { icon: Home, label: "dashboard", path: "/home" },
-    { icon: Utensils, label: "form", path: "/form" },
+    { icon: Utensils, label: "Add Meal", path: "/form" },
     { icon: MessageCircle, label: "Nutrition Genie", path: "/chat" },
 
   ];

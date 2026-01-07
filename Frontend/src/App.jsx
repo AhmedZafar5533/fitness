@@ -1,7 +1,7 @@
 import "nprogress/nprogress.css";
-import { Route, Routes, Navigate } from "react-router-dom";
-import { Toaster } from "sonner";
-import { useEffect } from "react";
+import { Route, Routes, Navigate, useLocation } from "react-router-dom";
+import { Toaster, toast } from "sonner";
+import { useEffect, useRef } from "react";
 
 import MealTrackingForm from "./pages/meal/mealForm";
 import FitnessChatbot from "./pages/meal/chatbot";
@@ -10,9 +10,9 @@ import ProfilePage from "./pages/meal/ProfilePage";
 import MealUploadPage from "./pages/meal/mealUploadPage";
 import ProfileForm from "./pages/meal/ProfileForm";
 import ModernDashboard from "./pages/meal/ModernDashboard";
+import ResetPasswordPage from "./pages/meal/PasswordReset";
 
 import MainLayout from "./Layouts/MainLayout";
-import ProtectedRoute from "./components/protectedRoute";
 import { useAuthStore } from "./store/authStore";
 
 // Loading component
@@ -25,14 +25,57 @@ const LoadingScreen = () => (
   </div>
 );
 
+/**
+ * Protected Route Component
+ * Handles Authentication check AND Profile Completion check
+ */
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, user, isLoading } = useAuthStore();
+  const location = useLocation();
+  const toastShownRef = useRef(false);
+
+  if (isLoading) return <LoadingScreen />;
+
+  // 1. Check Authentication
+  if (!isAuthenticated) {
+    return <Navigate to="/" state={{ from: location }} replace />;
+  }
+
+  // 2. Check Profile Completion
+  // If profile is NOT done, and user is trying to access any page OTHER than /profile/info
+  if (user && !user.profileDone && location.pathname !== "/profile/info") {
+    // Prevent toast duplication on re-renders
+    if (!toastShownRef.current) {
+      toast.warning(
+        "Please complete your profile details to access the full site."
+      );
+      toastShownRef.current = true;
+    }
+    return <Navigate to="/profile/info" replace />;
+  }
+
+  // Reset toast ref if valid navigation
+  toastShownRef.current = false;
+
+  return children;
+};
+
 const App = () => {
-  const { isAuthenticated, isLoading, chechAuthentication } = useAuthStore();
+  const { isAuthenticated, isLoading, chechAuthentication, user } =
+    useAuthStore();
 
   useEffect(() => {
     chechAuthentication();
   }, [chechAuthentication]);
 
-  // Show loading screen while checking authentication
+  // Determine where to redirect logged-in users who try to access the login page
+  const getHomeRedirect = () => {
+    if (user && !user.profileDone) {
+      return "/profile/info";
+    }
+    return "/home";
+  };
+
   if (isLoading) {
     return <LoadingScreen />;
   }
@@ -42,37 +85,60 @@ const App = () => {
       <Toaster position="top-right" richColors closeButton />
 
       <Routes>
-        {/* LOGIN
+        {/* === PUBLIC ROUTES === */}
+
+        {/* Login Page: If logged in, redirect based on profile status */}
         <Route
           path="/"
           element={
             isAuthenticated ? (
-              <Navigate to="/home" replace />
+              <Navigate to={getHomeRedirect()} replace />
             ) : (
               <FitnessAuthForm />
             )
           }
         />
 
-        {/* PROTECTED ROUTES */}
-        {/* <Route element={<ProtectedRoute />}> */} */
-        <Route element={<MainLayout />}>
+        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+
+        {/* === PROTECTED ROUTES === */}
+
+        {/* 1. Profile Completion Route (Protected by Auth, but not by profileDone tag) */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <MainLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/profile/info" element={<ProfileForm />} />
+        </Route>
+
+        {/* 2. Main App Routes (Protected by Auth AND enforced profileDone check) */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <MainLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route path="/home" element={<ModernDashboard />} />
           <Route path="/meals" element={<MealUploadPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/form" element={<MealTrackingForm />} />
         </Route>
-        <Route path="/" element={<FitnessAuthForm />} />
-        <Route path="/chat" element={<FitnessChatbot />} />
-        {/* </Route> */}
-        {/* PROFILE COMPLETION (should also be protected!) */}
-        {/* <Route element={<ProtectedRoute skipProfileCheck />}> */}
-        <Route element={<MainLayout />}>
-          <Route path="/profile/info" element={<ProfileForm />} />
-        </Route>
-        {/* </Route> */}
-        {/* CHAT (protect if needed) */}
-        {/* FALLBACK */}
+
+        {/* Chatbot Route */}
+        <Route
+          path="/chat"
+          element={
+            <ProtectedRoute>
+              <FitnessChatbot />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Catch all */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>

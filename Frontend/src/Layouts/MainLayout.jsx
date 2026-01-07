@@ -82,7 +82,7 @@ export default function MainLayout() {
         </header>
 
         {/* ROUTED PAGE CONTENT */}
-        <main className="p-6">
+        <main >
           <Outlet />
         </main>
       </div>

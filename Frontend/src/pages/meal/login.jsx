@@ -7,6 +7,9 @@ import {
   Apple,
   TrendingUp,
   Heart,
+  ArrowLeft,
+  Mail,
+  CheckCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
@@ -14,16 +17,23 @@ import { useAuthStore } from "../../store/authStore";
 export default function FitnessAuthForm() {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
   });
+  const [resetEmail, setResetEmail] = useState("");
   const [errors, setErrors] = useState({});
+  const [resetError, setResetError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isResetLoading, setIsResetLoading] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const navigate = useNavigate();
-  const { sendRegisterRequest, sendLoginRequest } = useAuthStore();
+
+  const { sendRegisterRequest, sendLoginRequest, sendForgotPasswordRequest } =
+    useAuthStore();
 
   // Input change handler
   const handleInputChange = (e) => {
@@ -31,7 +41,7 @@ export default function FitnessAuthForm() {
       ...formData,
       [e.target.name]: e.target.value,
     });
-    setErrors((prev) => ({ ...prev, [e.target.name]: "" })); // clear error on change
+    setErrors((prev) => ({ ...prev, [e.target.name]: "" }));
   };
 
   // Validation function
@@ -54,6 +64,19 @@ export default function FitnessAuthForm() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Validate reset email
+  const validateResetEmail = () => {
+    if (!resetEmail.trim()) {
+      setResetError("Email is required");
+      return false;
+    } else if (!/^\S+@\S+\.\S+$/.test(resetEmail)) {
+      setResetError("Invalid email format");
+      return false;
+    }
+    setResetError("");
+    return true;
+  };
+
   // Login handler
   const handleLogin = async () => {
     if (!validate()) return;
@@ -63,12 +86,8 @@ export default function FitnessAuthForm() {
         email: formData.email,
         password: formData.password,
       };
+      // Store returns true on success
       const success = await sendLoginRequest(data);
-      console.log("Login data:", data);
-      if (success) {
-        console.log("Navigating to profile page");
-        navigate("/profile/info");
-      }
     } catch (err) {
       console.error(err);
     }
@@ -85,13 +104,46 @@ export default function FitnessAuthForm() {
         email: formData.email,
         password: formData.password,
       };
-      await sendRegisterRequest(data);
-
-      setIsLogin(true);
+      // Store returns true on success
+      const success = await sendRegisterRequest(data);
+      if (success) {
+        setIsLogin(true); // Switch to login view on success
+        setFormData({ name: "", email: "", password: "" }); // Optional: clear form
+      }
     } catch (err) {
       console.error(err);
     }
     setIsLoading(false);
+  };
+
+  // Forgot password handler
+  const handleForgotPassword = async () => {
+    if (!validateResetEmail()) return;
+    setIsResetLoading(true);
+    try {
+      // Store returns true on success
+      const success = await sendForgotPasswordRequest({ email: resetEmail });
+
+      if (success) {
+        setResetEmailSent(true);
+        setResetError("");
+      } else {
+        // Store handles toast, but we can set inline error if specific logic requires it
+        setResetError("Failed to send email. Please try again.");
+      }
+    } catch (err) {
+      console.error(err);
+      setResetError("An error occurred. Please try again.");
+    }
+    setIsResetLoading(false);
+  };
+
+  // Back to login from forgot password
+  const handleBackToLogin = () => {
+    setShowForgotPassword(false);
+    setResetEmailSent(false);
+    setResetEmail("");
+    setResetError("");
   };
 
   const handleSubmit = () => {
@@ -100,6 +152,10 @@ export default function FitnessAuthForm() {
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter") handleSubmit();
+  };
+
+  const handleResetKeyPress = (e) => {
+    if (e.key === "Enter") handleForgotPassword();
   };
 
   const slides = [
@@ -112,134 +168,272 @@ export default function FitnessAuthForm() {
     <div className="min-h-screen bg-gray-50 flex">
       {/* Left side - Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
-          {/* Header */}
-          <div className="mb-12">
-            <h1 className="text-4xl font-bold text-gray-900 mb-3">
-              {isLogin ? "Welcome back!" : "Create account"}
-            </h1>
-            <p className="text-gray-600">
-              Simplify your workflow and boost your productivity
-              <br />
-              with <span className="font-semibold text-gray-900">FitTrack</span>
-              . Get started for free.
-            </p>
-          </div>
+        {showForgotPassword ? (
+          /* ================= FORGOT PASSWORD FORM ================= */
+          <div className="w-full max-w-md">
+            {/* Back Button */}
+            <button
+              onClick={handleBackToLogin}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors mb-8 group"
+            >
+              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+              <span>Back to login</span>
+            </button>
 
-          {/* Form Fields */}
-          <div className="space-y-5 mb-6">
-            {!isLogin && (
+            {!resetEmailSent ? (
+              <>
+                {/* Header */}
+                <div className="mb-12">
+                  <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-6">
+                    <Mail className="w-8 h-8 text-purple-600" />
+                  </div>
+                  <h1 className="text-4xl font-bold text-gray-900 mb-3">
+                    Forgot password?
+                  </h1>
+                  <p className="text-gray-600">
+                    No worries, we'll send you reset instructions.
+                    <br />
+                    Enter your email address below.
+                  </p>
+                </div>
+
+                {/* Email Input */}
+                <div className="space-y-5 mb-8">
+                  <div>
+                    <input
+                      type="email"
+                      value={resetEmail}
+                      onChange={(e) => {
+                        setResetEmail(e.target.value);
+                        setResetError("");
+                      }}
+                      onKeyPress={handleResetKeyPress}
+                      className={`w-full px-6 py-4 bg-white border rounded-full text-gray-900 placeholder-gray-400 focus:outline-none transition-all duration-200 ${
+                        resetError
+                          ? "border-red-500"
+                          : "border-gray-300 focus:border-purple-500"
+                      }`}
+                      placeholder="Enter your email"
+                    />
+                    {resetError && (
+                      <p className="text-red-500 text-sm mt-1">{resetError}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  onClick={handleForgotPassword}
+                  disabled={isResetLoading}
+                  className="w-full bg-gray-900 hover:bg-gray-800 text-white font-semibold py-4 rounded-full transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100 mb-6"
+                >
+                  {isResetLoading ? (
+                    <div className="w-5 h-5 border-2 border-gray-300 border-t-white rounded-full animate-spin mx-auto"></div>
+                  ) : (
+                    "Reset password"
+                  )}
+                </button>
+
+                {/* Footer */}
+                <div className="text-center">
+                  <p className="text-gray-600">
+                    Remember your password?{" "}
+                    <button
+                      type="button"
+                      onClick={handleBackToLogin}
+                      className="text-purple-600 hover:text-purple-700 font-semibold transition-colors"
+                    >
+                      Login
+                    </button>
+                  </p>
+                </div>
+              </>
+            ) : (
+              // Success State
+              <>
+                <div className="mb-12 text-center">
+                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6 mx-auto animate-bounce">
+                    <CheckCircle className="w-10 h-10 text-green-600" />
+                  </div>
+                  <h1 className="text-4xl font-bold text-gray-900 mb-3">
+                    Check your email
+                  </h1>
+                  <p className="text-gray-600">
+                    We've sent a password reset link to
+                    <br />
+                    <span className="font-semibold text-gray-900">
+                      {resetEmail}
+                    </span>
+                  </p>
+                </div>
+
+                {/* Open Email Button */}
+                <button
+                  onClick={() => window.open("mailto:", "_blank")}
+                  className="w-full bg-gray-900 hover:bg-gray-800 text-white font-semibold py-4 rounded-full transition-all duration-300 transform hover:scale-105 active:scale-95 mb-4"
+                >
+                  Open email app
+                </button>
+
+                {/* Resend Email */}
+                <button
+                  onClick={() => {
+                    setResetEmailSent(false);
+                  }}
+                  className="w-full bg-white hover:bg-gray-50 text-gray-900 font-semibold py-4 rounded-full border border-gray-300 transition-all duration-300 mb-6"
+                >
+                  Didn't receive the email? Click to resend
+                </button>
+
+                {/* Footer */}
+                <div className="text-center">
+                  <p className="text-gray-600">
+                    <button
+                      type="button"
+                      onClick={handleBackToLogin}
+                      className="text-purple-600 hover:text-purple-700 font-semibold transition-colors flex items-center gap-2 mx-auto"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      Back to login
+                    </button>
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          /* ================= MAIN AUTH FORM ================= */
+          <div className="w-full max-w-md">
+            {/* Header */}
+            <div className="mb-12">
+              <h1 className="text-4xl font-bold text-gray-900 mb-3">
+                {isLogin ? "Welcome back!" : "Create account"}
+              </h1>
+              <p className="text-gray-600">
+                Simplify your workflow and boost your productivity
+                <br />
+                with{" "}
+                <span className="font-semibold text-gray-900">FitTrack</span>.
+                Get started for free.
+              </p>
+            </div>
+
+            {/* Form Fields */}
+            <div className="space-y-5 mb-6">
+              {!isLogin && (
+                <div>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    onKeyPress={handleKeyPress}
+                    className={`w-full px-6 py-4 bg-white border rounded-full text-gray-900 placeholder-gray-400 focus:outline-none transition-all duration-200 ${
+                      errors.name
+                        ? "border-red-500"
+                        : "border-gray-300 focus:border-purple-500"
+                    }`}
+                    placeholder="Full Name"
+                  />
+                  {errors.name && (
+                    <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+                  )}
+                </div>
+              )}
+
               <div>
                 <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
+                  type="email"
+                  name="email"
+                  value={formData.email}
                   onChange={handleInputChange}
                   onKeyPress={handleKeyPress}
                   className={`w-full px-6 py-4 bg-white border rounded-full text-gray-900 placeholder-gray-400 focus:outline-none transition-all duration-200 ${
-                    errors.name
+                    errors.email
                       ? "border-red-500"
                       : "border-gray-300 focus:border-purple-500"
                   }`}
-                  placeholder="Full Name"
+                  placeholder="Email"
                 />
-                {errors.name && (
-                  <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+                {errors.email && (
+                  <p className="text-red-500 text-sm mt-1">{errors.email}</p>
                 )}
+              </div>
+
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  onKeyPress={handleKeyPress}
+                  className={`w-full px-6 py-4 pr-14 bg-white border rounded-full text-gray-900 placeholder-gray-400 focus:outline-none transition-all duration-200 ${
+                    errors.password
+                      ? "border-red-500"
+                      : "border-gray-300 focus:border-purple-500"
+                  }`}
+                  placeholder="Password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-5 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
+                {errors.password && (
+                  <p className="text-red-500 text-sm mt-1">{errors.password}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Forgot Password Link */}
+            {isLogin && (
+              <div className="text-right mb-8">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(true)}
+                  className="text-sm text-gray-600 hover:text-purple-600 transition-colors"
+                >
+                  Forgot Password?
+                </button>
               </div>
             )}
 
-            <div>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                onKeyPress={handleKeyPress}
-                className={`w-full px-6 py-4 bg-white border rounded-full text-gray-900 placeholder-gray-400 focus:outline-none transition-all duration-200 ${
-                  errors.email
-                    ? "border-red-500"
-                    : "border-gray-300 focus:border-purple-500"
-                }`}
-                placeholder="Email"
-              />
-              {errors.email && (
-                <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+            {/* Submit Button */}
+            <button
+              onClick={handleSubmit}
+              disabled={isLoading}
+              className="w-full bg-gray-900 hover:bg-gray-800 text-white font-semibold py-4 rounded-full transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100 mb-6"
+            >
+              {isLoading ? (
+                <div className="w-5 h-5 border-2 border-gray-300 border-t-white rounded-full animate-spin mx-auto"></div>
+              ) : isLogin ? (
+                "Login"
+              ) : (
+                "Sign Up"
               )}
-            </div>
+            </button>
 
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                name="password"
-                value={formData.password}
-                onChange={handleInputChange}
-                onKeyPress={handleKeyPress}
-                className={`w-full px-6 py-4 pr-14 bg-white border rounded-full text-gray-900 placeholder-gray-400 focus:outline-none transition-all duration-200 ${
-                  errors.password
-                    ? "border-red-500"
-                    : "border-gray-300 focus:border-purple-500"
-                }`}
-                placeholder="Password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-5 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                {showPassword ? (
-                  <EyeOff className="w-5 h-5" />
-                ) : (
-                  <Eye className="w-5 h-5" />
-                )}
-              </button>
-              {errors.password && (
-                <p className="text-red-500 text-sm mt-1">{errors.password}</p>
-              )}
+            {/* Footer */}
+            <div className="text-center">
+              <p className="text-gray-600">
+                {isLogin ? "Not a member?" : "Already have an account?"}{" "}
+                <button
+                  type="button"
+                  onClick={() => setIsLogin(!isLogin)}
+                  className="text-purple-600 hover:text-purple-700 font-semibold transition-colors"
+                >
+                  {isLogin ? "Register now" : "Login"}
+                </button>
+              </p>
             </div>
           </div>
-
-          {/* Forgot Password */}
-          {isLogin && (
-            <div className="text-right mb-8">
-              <button
-                type="button"
-                className="text-sm text-gray-600 hover:text-purple-600 transition-colors"
-              >
-                Forgot Password?
-              </button>
-            </div>
-          )}
-
-          {/* Submit Button */}
-          <button
-            onClick={handleSubmit}
-            disabled={isLoading}
-            className="w-full bg-gray-900 hover:bg-gray-800 text-white font-semibold py-4 rounded-full transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100 mb-6"
-          >
-            {isLoading ? (
-              <div className="w-5 h-5 border-2 border-gray-300 border-t-white rounded-full animate-spin mx-auto"></div>
-            ) : isLogin ? (
-              "Login"
-            ) : (
-              "Sign Up"
-            )}
-          </button>
-
-          {/* Footer */}
-          <div className="text-center">
-            <p className="text-gray-600">
-              {isLogin ? "Not a member?" : "Already have an account?"}{" "}
-              <button
-                type="button"
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-purple-600 hover:text-purple-700 font-semibold transition-colors"
-              >
-                {isLogin ? "Register now" : "Login"}
-              </button>
-            </p>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Right side - Illustration */}

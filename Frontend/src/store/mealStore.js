@@ -106,4 +106,31 @@ export const useMealStore = create((set) => ({
       set({ loading: false });
     }
   },
+  addWaterOrCalories: async (data) => {
+    try {
+      console.log(data);
+      const response = await axios.post(`${API_URL}/meals/add`, data, {
+        withCredentials: true,
+      });
+      toast.success(response.message || "Updated successfully.");
+      return true;
+    } catch (error) {
+      toast.error("Failed to update.");
+      console.error("Error updating:", error);
+      throw error;
+    }
+  },
+  deleteMeal: async (mealId) => {
+    try {
+      const response = await axios.delete(`${API_URL}/meals/${mealId}`, {
+        withCredentials: true,
+      });
+      toast.success(response.message || "Meal deleted successfully.");
+      return true;
+    } catch (error) {
+      toast.error("Failed to delete meal.");
+      console.error("Error deleting meal:", error);
+      throw error;
+    }
+  },
 }));

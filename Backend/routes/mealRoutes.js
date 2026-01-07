@@ -278,4 +278,143 @@ router.post("/save", async (req, res) => {
   }
 });
 
+router.post("/add", async (req, res) => {
+  try {
+    const { quantity, type } = req.body;
+    console.log(req.body);
+    const userId = req.user.id;
+
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    if (quantity < 0 || (type !== "water" && type !== "calories")) {
+      return res.status(400).json({ message: "Invalid input" });
+    }
+
+    const updateField = type === "water" ? "water_ml" : "calories";
+
+    const stats = await NutritionStats.findOneAndUpdate(
+      {
+        userId,
+        createdAt: { $gte: startOfDay, $lte: endOfDay },
+      },
+      {
+        $inc: { [updateField]: quantity },
+        $setOnInsert: { userId, createdAt: new Date() },
+      },
+      {
+        new: true,
+        upsert: true,
+      }
+    );
+
+    const successMessage =
+      type === "water"
+        ? "Water intake added successfully"
+        : "Calories added successfully";
+
+    return res.status(200).json({
+      message: successMessage,
+      [updateField]: stats[updateField],
+      stats,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+router.delete("/:mealId", async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { mealId } = req.params;
+
+    // 1. Find and delete the meal
+    const meal = await Meal.findOneAndDelete({ _id: mealId, userId });
+
+    if (!meal) {
+      return res.status(404).json({ message: "Meal not found" });
+    }
+
+    // 2. Get today's date range
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // 3. Find today's nutrition stats
+    const stats = await NutritionStats.findOne({
+      userId,
+      createdAt: { $gte: startOfDay, $lte: endOfDay },
+    });
+
+    if (!stats) {
+      return res.status(200).json({
+        message: "Meal deleted but no nutrition stats found for today",
+      });
+    }
+
+    // 4. Safely extract nutrients from deleted meal
+    const calories = Number(meal.calories) || 0;
+    const protein = Number(meal.protein_g) || 0;
+    const carbs = Number(meal.carbs_g) || 0;
+    const fats = Number(meal.fat_g) || 0;
+    const fiber = Number(meal.fiber_g) || 0;
+    const sodium = Number(meal.sodium_mg) || 0;
+    const sugar = Number(meal.sugar_g) || 0;
+
+    // 5. Subtract totals
+    stats.calories = Math.max(0, stats.calories - calories);
+    stats.protein_g = Math.max(0, stats.protein_g - protein);
+    stats.carbs_g = Math.max(0, stats.carbs_g - carbs);
+    stats.fat_g = Math.max(0, stats.fat_g - fats);
+    stats.fiber_g = Math.max(0, stats.fiber_g - fiber);
+    stats.sodium_mg = Math.max(0, stats.sodium_mg - sodium);
+    stats.sugar_g = Math.max(0, stats.sugar_g - sugar);
+
+    // 6. Subtract from meal-type calories
+    switch (meal.mealType.toLowerCase()) {
+      case "breakfast":
+        stats.breakFastCalories = Math.max(
+          0,
+          stats.breakFastCalories - calories
+        );
+        break;
+      case "lunch":
+        stats.lunchCalories = Math.max(0, stats.lunchCalories - calories);
+        break;
+      case "dinner":
+        stats.dinnerCalories = Math.max(0, stats.dinnerCalories - calories);
+        break;
+      case "snack":
+        stats.snackCalories = Math.max(0, stats.snackCalories - calories);
+        break;
+      default:
+        break;
+    }
+
+    // 7. Remove meal ID from stats
+    stats.mealIds = stats.mealIds.filter(
+      (id) => id.toString() !== meal._id.toString()
+    );
+
+    // 8. Save updated stats
+    await stats.save();
+
+    res.status(200).json({
+      message: "Meal deleted and nutrition stats updated successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
+});
+
 module.exports = router;

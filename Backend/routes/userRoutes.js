@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { upload } = require("../config/multer");
 const UserProfile = require("../models/profile.");
+const User = require("../models/user");
 
 router.post("/", upload.single("image"), async (req, res) => {
   try {
@@ -41,7 +42,7 @@ router.post("/", upload.single("image"), async (req, res) => {
       profileData,
       { new: true, upsert: true, runValidators: true }
     );
-
+    await User.updateOne({ _id: userId }, { profileDone: true });
     res.status(200).json({
       message: "Profile saved successfully",
       profile,
@@ -71,5 +72,7 @@ router.get("/", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+
 
 module.exports = router;

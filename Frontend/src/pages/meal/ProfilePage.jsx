@@ -562,9 +562,9 @@ export default function ProfilePage() {
                     {profile.imageUrl || profile.imageUrl || profile.avatar ? (
                       <img
                         src={
-                          // "http://localhost:3000" + profile.imageUrl ||
-                          // profile.imageUrl ||
-                          // profile.avatar ||
+     
+                          profile.imageUrl ||
+                          profile.avatar ||
                           "https://www.gravatar.com/avatar/?d=mp"
                         }
                         alt={`${profile.name} avatar`}
