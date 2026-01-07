@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { ImageIcon, X, Check, User, Info } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "../../store/authStore";
 
 export default function ProfileForm() {
   const [name, setName] = useState("");
@@ -19,6 +20,7 @@ export default function ProfileForm() {
   const infoRef = useRef();
   const imageInputRef = useRef();
   const navigate = useNavigate();
+  const {user, setUser} = useAuthStore();
 
   const dietaryOptions = ["Gluten", "Lactose", "Peanuts", "Soy", "Shellfish"];
   const allergyOptions = ["Peanuts", "Seafood", "Eggs", "Dairy", "Soy"];
@@ -89,6 +91,10 @@ export default function ProfileForm() {
       if (!response.ok) throw new Error("Failed to save profile");
       if (response.status === 200) {
         toast.success("Profile saved successfully!");
+      
+if (user) {
+  setUser({ ...user, profileDone: true });
+}
         navigate("/profile");
       }
       // Reset form if needed

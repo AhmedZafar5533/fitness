@@ -1,21 +1,23 @@
 import "nprogress/nprogress.css";
 import { Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { Toaster, toast } from "sonner";
-import { useEffect, useRef } from "react";
-
-import MealTrackingForm from "./pages/meal/mealForm";
-import FitnessChatbot from "./pages/meal/chatbot";
-import FitnessAuthForm from "./pages/meal/login";
-import ProfilePage from "./pages/meal/ProfilePage";
-import MealUploadPage from "./pages/meal/mealUploadPage";
-import ProfileForm from "./pages/meal/ProfileForm";
-import ModernDashboard from "./pages/meal/ModernDashboard";
-import ResetPasswordPage from "./pages/meal/PasswordReset";
+import { useEffect, useRef, lazy, Suspense } from "react";
 
 import MainLayout from "./Layouts/MainLayout";
 import { useAuthStore } from "./store/authStore";
-import MealHistory from "./pages/meal/MealHistory";
 
+// Lazy load pages
+const MealTrackingForm = lazy(() => import("./pages/meal/mealForm"));
+const FitnessChatbot = lazy(() => import("./pages/meal/chatbot"));
+const FitnessAuthForm = lazy(() => import("./pages/meal/login"));
+const ProfilePage = lazy(() => import("./pages/meal/ProfilePage"));
+const MealUploadPage = lazy(() => import("./pages/meal/mealUploadPage"));
+const ProfileForm = lazy(() => import("./pages/meal/ProfileForm"));
+const ModernDashboard = lazy(() => import("./pages/meal/ModernDashboard"));
+const ResetPasswordPage = lazy(() => import("./pages/meal/PasswordReset"));
+const MealHistory = lazy(() => import("./pages/meal/MealHistory"));
+
+// Loading fallback component
 const LoadingScreen = () => (
   <div className="flex items-center justify-center min-h-screen bg-gray-100">
     <div className="flex flex-col items-center gap-4">
@@ -78,47 +80,48 @@ const App = () => {
     <>
       <Toaster position="top-right" richColors closeButton />
 
-      <Routes>
-        <Route
-          path="/"
-          element={
-            isAuthenticated ? (
-              <Navigate to={getHomeRedirect()} replace />
-            ) : (
-              <FitnessAuthForm />
-            )
-          }
-        />
+      <Suspense fallback={<LoadingScreen />}>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              isAuthenticated ? (
+                <Navigate to={getHomeRedirect()} replace />
+              ) : (
+                <FitnessAuthForm />
+              )
+            }
+          />
 
-        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
 
-        <Route
-          element={
-            <ProtectedRoute>
-              <MainLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route path="/profile/info" element={<ProfileForm />} />
-          <Route path="/home" element={<ModernDashboard />} />
-          <Route path="/meals" element={<MealUploadPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/form" element={<MealTrackingForm />} />
-          <Route path="/history" element={<MealHistory />} />
-        </Route>
+          <Route
+            element={
+              <ProtectedRoute>
+                <MainLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/profile/info" element={<ProfileForm />} />
+            <Route path="/home" element={<ModernDashboard />} />
+            <Route path="/meals" element={<MealUploadPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/form" element={<MealTrackingForm />} />
+            <Route path="/history" element={<MealHistory />} />
+          </Route>
 
-        <Route
-          path="/chat"
-          element={
-            <ProtectedRoute>
-              <FitnessChatbot />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/chat"
+            element={
+              <ProtectedRoute>
+                <FitnessChatbot />
+              </ProtectedRoute>
+            }
+          />
 
-
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </>
   );
 };

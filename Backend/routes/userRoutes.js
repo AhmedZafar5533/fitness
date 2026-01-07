@@ -42,10 +42,11 @@ router.post("/", upload.single("image"), async (req, res) => {
       profileData,
       { new: true, upsert: true, runValidators: true }
     );
-    await User.updateOne({ _id: userId }, { profileDone: true });
+    const user = await User.updateOne({ _id: userId }, { profileDone: true });
     res.status(200).json({
       message: "Profile saved successfully",
       profile,
+      user,
     });
   } catch (error) {
     console.error(error);

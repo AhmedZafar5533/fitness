@@ -7,6 +7,7 @@ export const useAuthStore = create((set) => ({
   isAuthenticated: false,
   user: null,
   isLoading: true,
+  setUser: (userData) => set({ user: userData }),
 
   chechAuthentication: async () => {
     set({ isLoading: true });
