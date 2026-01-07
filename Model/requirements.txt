@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+pydantic
+torch
+torchvision
+timm
+safetensors
+pillow
+python-multipart

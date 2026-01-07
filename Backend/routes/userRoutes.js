@@ -73,6 +73,49 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.patch("/", async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const {
+      name,
+      age,
+      weight,
+      height,
+      gender,
+      dietType,
+      dietaryRestrictions,
+      allergies,
+    } = req.body;
+    console.log(req.body);
+    const profileData = {
+      userId,
+      name,
+      age,
+      weight,
+      height,
+      gender,
+      dietType,
+      dietaryRestrictions: dietaryRestrictions,
+      allergies: allergies ,
+    };
 
+    const profile = await UserProfile.findOneAndUpdate(
+      { userId },
+      profileData,
+      { new: true, upsert: true, runValidators: true }
+    );
+    await User.updateOne({ _id: userId }, { profileDone: true });
+    res.status(200).json({
+      message: "Profile saved successfully",
+      profile,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Failed to save profile",
+      error: error.message,
+    });
+  }
+});
 
 module.exports = router;

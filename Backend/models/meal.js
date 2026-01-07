@@ -2,6 +2,14 @@ const mongoose = require("mongoose");
 
 const mealSchema = new mongoose.Schema(
   {
+
+    status: {
+      type: String,
+      enum: ["upcoming", "completed", 'recommended', 'eaten', 'skipped'],
+required: true
+    },
+
+
     mealType: {
       type: String,
       enum: ["breakfast", "lunch", "dinner", "snack"],

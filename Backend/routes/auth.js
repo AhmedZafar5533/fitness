@@ -14,6 +14,7 @@ const JWT_RESET_KEY = process.env.JWT_RESET_KEY;
 // Check authentication status
 router.get("/check-auth", (req, res) => {
   if (req.isAuthenticated()) {
+    console.log(req.user)
     return res.status(200).json({ isAuthenticated: true, data: req.user });
   }
   return res.status(401).json({ isAuthenticated: false, user: null });

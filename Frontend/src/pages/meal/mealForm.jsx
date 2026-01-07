@@ -100,7 +100,7 @@ export default function MealTrackingForm() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFF5F5] p-4">
+    <div className="min-h-screen bg-slate-50 p-4">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 mb-6">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-between">

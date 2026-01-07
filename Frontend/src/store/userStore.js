@@ -19,4 +19,18 @@ export const useUserStore = create((set) => ({
       throw error;
     }
   },
+  editProfile: async (data) => {
+    try {
+      const response = await axios.patch(`${API_URL}/profile`, data, {
+        withCredentials: true,
+      });
+      console.log( response.data.data);
+      set({ profile: response.data.data });
+      return true;
+    } catch (error) {
+      toast.error("Failed to update user profile.");
+      console.error("Error updating user profile:", error);
+      throw error;
+    }
+  }
 }));

@@ -56,6 +56,7 @@ export const useChatStore = create((set, get) => ({
       const messages = data.map((msg) => ({
         role: msg.role,
         content: msg.content,
+        // recommendations: msg.recommendations,
         timestamp: msg.createdAt,
       }));
 

@@ -10,6 +10,13 @@ async function buildNutritionContext(userId) {
     {},
     { sort: { createdAt: -1 } }
   );
+  if (!todayStats) {
+    return `USER PROFILE:
+Age: ${profile.age}
+Gender: ${profile.gender}
+Diet: ${profile.dietType}
+Allergies: ${profile.allergies.join(", ") || "None"}`;
+  }
 
   const recentMeals = await Meal.find({ userId })
     .sort({ createdAt: -1 })

@@ -83,260 +83,182 @@ const mealTypeConfig = {
   },
 };
 
-// Nutrition Badge Component
-const NutritionBadge = ({ icon: Icon, label, value, unit, color }) => (
-  <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50">
-    <Icon className={`w-3.5 h-3.5 ${color}`} />
-    <span className="text-xs text-gray-500">{label}</span>
-    <span className="text-xs font-semibold text-gray-700">
-      {value}
-      {unit}
-    </span>
-  </div>
-);
-
-// Meal Recommendation Card Component
+// Simplified Meal Recommendation Card Component
 const MealRecommendationCard = ({
   recommendation,
   onAddToLog,
   onSave,
-  onViewDetails,
   isAdding,
-  isSaved,
+  isSaving,
+  index,
 }) => {
-  const [expanded, setExpanded] = useState(false);
   const config =
     mealTypeConfig[recommendation.mealType] || mealTypeConfig.snack;
   const MealIcon = config.icon;
 
   return (
-    <div
-      className={`relative overflow-hidden rounded-2xl border ${config.borderColor} ${config.bgColor} transition-all duration-300 hover:shadow-lg`}
-    >
-      {/* Card Header */}
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
-            {/* Meal Type Icon */}
-            <div
-              className={`w-12 h-12 rounded-xl bg-gradient-to-br ${config.color} flex items-center justify-center shadow-lg flex-shrink-0`}
-            >
-              <MealIcon className="w-6 h-6 text-white" />
-            </div>
-
-            {/* Meal Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span
-                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${config.bgColor} ${config.textColor} border ${config.borderColor}`}
-                >
-                  {config.label}
-                </span>
-              </div>
-              <h4 className="font-semibold text-gray-800 leading-tight">
-                {recommendation.mealName}
-              </h4>
-            </div>
+    <div className="bg-white rounded-xl border border-gray-200 p-4 hover:border-gray-300 transition-colors">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+            <MealIcon className="w-4 h-4 text-gray-600" />
           </div>
-
-          {/* Calories Badge */}
-          <div className="flex flex-col items-end">
-            <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white shadow-sm border border-gray-100">
-              <Flame className="w-4 h-4 text-orange-500" />
-              <span className="font-bold text-gray-800">
-                {recommendation.calories}
-              </span>
-              <span className="text-xs text-gray-500">kcal</span>
-            </div>
+          <div className="min-w-0">
+            <span className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">
+              {config.label}
+            </span>
+            <h4 className="font-medium text-gray-900 truncate text-sm">
+              {recommendation.mealName}
+            </h4>
           </div>
         </div>
 
-        {/* Quick Stats */}
-        <div className="flex flex-wrap gap-2 mt-4">
-          <NutritionBadge
-            icon={Beef}
-            label="Protein"
-            value={recommendation.protein_g}
-            unit="g"
-            color="text-red-500"
-          />
-          <NutritionBadge
-            icon={Wheat}
-            label="Carbs"
-            value={recommendation.carbs_g}
-            unit="g"
-            color="text-amber-500"
-          />
-          <NutritionBadge
-            icon={Droplets}
-            label="Fat"
-            value={recommendation.fat_g}
-            unit="g"
-            color="text-blue-500"
-          />
-        </div>
-
-        {/* Expandable Details */}
         <button
-          onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-1 mt-3 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+          onClick={() => onSave(recommendation, index)}
+          disabled={isSaving}
+          className={`p-1.5 rounded-md transition-colors ${
+            isSaving
+              ? "text-gray-300 cursor-not-allowed"
+              : "text-gray-300 hover:text-purple-600"
+          }`}
+          title="Save for later"
         >
-          {expanded ? (
-            <>
-              <ChevronUp className="w-4 h-4" />
-              Hide details
-            </>
+          {isSaving ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
-            <>
-              <ChevronDown className="w-4 h-4" />
-              Show more details
-            </>
+            <Bookmark className="w-4 h-4" />
           )}
         </button>
+      </div>
 
-        {/* Expanded Nutrition Details */}
-        {expanded && (
-          <div className="mt-4 pt-4 border-t border-gray-200/50 animate-fadeIn">
-            <h5 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-              Full Nutrition Information
-            </h5>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="bg-white rounded-xl p-3 text-center shadow-sm">
-                <Flame className="w-5 h-5 text-orange-500 mx-auto mb-1" />
-                <p className="text-lg font-bold text-gray-800">
-                  {recommendation.calories}
-                </p>
-                <p className="text-xs text-gray-500">Calories</p>
-              </div>
-              <div className="bg-white rounded-xl p-3 text-center shadow-sm">
-                <Beef className="w-5 h-5 text-red-500 mx-auto mb-1" />
-                <p className="text-lg font-bold text-gray-800">
-                  {recommendation.protein_g}g
-                </p>
-                <p className="text-xs text-gray-500">Protein</p>
-              </div>
-              <div className="bg-white rounded-xl p-3 text-center shadow-sm">
-                <Wheat className="w-5 h-5 text-amber-500 mx-auto mb-1" />
-                <p className="text-lg font-bold text-gray-800">
-                  {recommendation.carbs_g}g
-                </p>
-                <p className="text-xs text-gray-500">Carbs</p>
-              </div>
-              <div className="bg-white rounded-xl p-3 text-center shadow-sm">
-                <Droplets className="w-5 h-5 text-blue-500 mx-auto mb-1" />
-                <p className="text-lg font-bold text-gray-800">
-                  {recommendation.fat_g}g
-                </p>
-                <p className="text-xs text-gray-500">Fat</p>
-              </div>
-            </div>
+      {/* Nutrition - Simple Row */}
+      <div className="flex items-center justify-between py-3 px-3 bg-gray-50 rounded-lg mb-4">
+        <div className="text-center">
+          <span className="text-sm font-semibold text-gray-900">
+            {recommendation.calories}
+          </span>
+          <span className="text-[10px] text-gray-400 block">kcal</span>
+        </div>
+        <div className="w-px h-6 bg-gray-200" />
+        <div className="text-center">
+          <span className="text-sm font-semibold text-gray-900">
+            {recommendation.protein_g}g
+          </span>
+          <span className="text-[10px] text-gray-400 block">protein</span>
+        </div>
+        <div className="w-px h-6 bg-gray-200" />
+        <div className="text-center">
+          <span className="text-sm font-semibold text-gray-900">
+            {recommendation.carbs_g}g
+          </span>
+          <span className="text-[10px] text-gray-400 block">carbs</span>
+        </div>
+        <div className="w-px h-6 bg-gray-200" />
+        <div className="text-center">
+          <span className="text-sm font-semibold text-gray-900">
+            {recommendation.fat_g}g
+          </span>
+          <span className="text-[10px] text-gray-400 block">fat</span>
+        </div>
+      </div>
 
-            <div className="grid grid-cols-3 gap-3 mt-3">
-              <div className="bg-white rounded-xl p-3 text-center shadow-sm">
-                <p className="text-sm font-bold text-gray-800">
-                  {recommendation.fiber_g}g
-                </p>
-                <p className="text-xs text-gray-500">Fiber</p>
-              </div>
-              <div className="bg-white rounded-xl p-3 text-center shadow-sm">
-                <p className="text-sm font-bold text-gray-800">
-                  {recommendation.sugar_g}g
-                </p>
-                <p className="text-xs text-gray-500">Sugar</p>
-              </div>
-              <div className="bg-white rounded-xl p-3 text-center shadow-sm">
-                <p className="text-sm font-bold text-gray-800">
-                  {recommendation.sodium_mg}mg
-                </p>
-                <p className="text-xs text-gray-500">Sodium</p>
-              </div>
-            </div>
-          </div>
+      {/* Additional Nutrients - Minimal */}
+      {(recommendation.fiber_g ||
+        recommendation.sugar_g ||
+        recommendation.sodium_mg) && (
+        <div className="flex items-center gap-4 text-[11px] text-gray-400 mb-4">
+          {recommendation.fiber_g && (
+            <span>Fiber: {recommendation.fiber_g}g</span>
+          )}
+          {recommendation.sugar_g && (
+            <span>Sugar: {recommendation.sugar_g}g</span>
+          )}
+          {recommendation.sodium_mg && (
+            <span>Sodium: {recommendation.sodium_mg}mg</span>
+          )}
+        </div>
+      )}
+
+      {/* Add Button */}
+      <button
+        onClick={() => onAddToLog(recommendation, index)}
+        disabled={isAdding}
+        className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-colors ${
+          isAdding
+            ? "bg-gray-100 text-gray-400"
+            : "bg-gray-900 text-white hover:bg-gray-800"
+        }`}
+      >
+        {isAdding ? (
+          <>
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            <span>Adding...</span>
+          </>
+        ) : (
+          <>
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add to Log</span>
+          </>
         )}
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex items-center gap-2 p-4 pt-0">
-        <button
-          onClick={() => onAddToLog(recommendation)}
-          disabled={isAdding}
-          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 ${
-            isAdding
-              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-              : "bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-lg hover:shadow-purple-500/25 hover:-translate-y-0.5"
-          }`}
-        >
-          {isAdding ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Adding...
-            </>
-          ) : (
-            <>
-              <PlusCircle className="w-4 h-4" />
-              Add to Meal Log
-            </>
-          )}
-        </button>
-
-        <button
-          onClick={() => onSave(recommendation)}
-          className={`p-2.5 rounded-xl border transition-all duration-200 ${
-            isSaved
-              ? "bg-purple-100 border-purple-300 text-purple-600"
-              : "bg-white border-gray-200 text-gray-500 hover:border-purple-300 hover:text-purple-600"
-          }`}
-          title={isSaved ? "Saved" : "Save for later"}
-        >
-          {isSaved ? (
-            <BookmarkCheck className="w-5 h-5" />
-          ) : (
-            <Bookmark className="w-5 h-5" />
-          )}
-        </button>
-      </div>
+      </button>
     </div>
   );
 };
 
-// Recommendations Section Component
+// Simplified Recommendations Section Component
 const RecommendationsSection = ({
   recommendations,
   onAddToLog,
   onSaveRecommendation,
   addingMealId,
-  savedMeals,
+  savingMealId,
+  removedMeals,
 }) => {
-  if (!recommendations || recommendations.length === 0) return null;
+  // Filter out removed meals
+  const visibleRecommendations = recommendations.filter(
+    (rec, index) => !removedMeals.includes(`${rec.mealName}-${index}`)
+  );
+
+  if (!visibleRecommendations || visibleRecommendations.length === 0) return null;
 
   return (
-    <div className="mt-6 space-y-4">
+    <div className="mt-6">
       {/* Section Header */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3 mb-4">
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
           <Sparkles className="w-4 h-4 text-white" />
         </div>
         <div>
-          <h3 className="font-semibold text-gray-800">Meal Recommendations</h3>
+          <h3 className="font-semibold text-gray-800">
+            Recommended for You
+          </h3>
           <p className="text-xs text-gray-500">
-            {recommendations.length} personalized suggestion
-            {recommendations.length > 1 ? "s" : ""} for you
+            {visibleRecommendations.length} meal{visibleRecommendations.length > 1 ? "s" : ""}{" "}
+            based on your preferences
           </p>
         </div>
       </div>
 
-      {/* Recommendation Cards Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {recommendations.map((rec, index) => (
-          <MealRecommendationCard
-            key={`${rec.mealName}-${index}`}
-            recommendation={rec}
-            onAddToLog={onAddToLog}
-            onSave={onSaveRecommendation}
-            isAdding={addingMealId === `${rec.mealName}-${index}`}
-            isSaved={savedMeals.includes(`${rec.mealName}-${index}`)}
-          />
-        ))}
+      {/* Horizontal Scrollable Cards for mobile, Grid for larger screens */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {recommendations.map((rec, index) => {
+          const mealId = `${rec.mealName}-${index}`;
+          // Skip removed meals
+          if (removedMeals.includes(mealId)) return null;
+          
+          return (
+            <MealRecommendationCard
+              key={mealId}
+              recommendation={rec}
+              index={index}
+              onAddToLog={onAddToLog}
+              onSave={onSaveRecommendation}
+              isAdding={addingMealId === mealId}
+              isSaving={savingMealId === mealId}
+            />
+          );
+        })}
       </div>
     </div>
   );
@@ -368,76 +290,68 @@ const AddMealModal = ({ meal, onClose, onConfirm, isLoading }) => {
   );
 
   const config = mealTypeConfig[mealType];
+  const MealIcon = config.icon;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/40"
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-scaleIn">
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
         {/* Header */}
-        <div
-          className={`bg-gradient-to-r ${config.color} p-6 text-white relative overflow-hidden`}
-        >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
-
-          <div className="relative">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Add to Meal Log</h2>
-              <button
-                onClick={onClose}
-                className="p-2 hover:bg-white/20 rounded-xl transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <p className="text-white/80 text-sm">
-              Confirm the details before adding this meal
+        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Add to Meal Log</h2>
+            <p className="text-sm text-gray-400 mt-0.5">
+              Confirm details before adding
             </p>
           </div>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Meal Name */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Meal Name
-            </label>
-            <div className="px-4 py-3 bg-gray-50 rounded-xl border border-gray-200">
-              <p className="font-medium text-gray-800">{meal?.mealName}</p>
+        <div className="p-5 space-y-5">
+          {/* Meal Name Display */}
+          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+            <div className="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center">
+              <MealIcon className="w-5 h-5 text-gray-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Meal</p>
+              <p className="font-medium text-gray-900 truncate">{meal?.mealName}</p>
             </div>
           </div>
 
           {/* Meal Type Selector */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
               Meal Type
             </label>
             <div className="grid grid-cols-4 gap-2">
               {Object.entries(mealTypeConfig).map(([type, cfg]) => {
                 const Icon = cfg.icon;
+                const isSelected = mealType === type;
                 return (
                   <button
                     key={type}
                     onClick={() => setMealType(type)}
-                    className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
-                      mealType === type
-                        ? `${cfg.borderColor} ${cfg.bgColor}`
-                        : "border-gray-200 hover:border-gray-300"
+                    className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border transition-all ${
+                      isSelected
+                        ? "border-gray-900 bg-gray-900"
+                        : "border-gray-200 hover:border-gray-300 bg-white"
                     }`}
                   >
-                    <div
-                      className={`w-8 h-8 rounded-lg bg-gradient-to-br ${cfg.color} flex items-center justify-center`}
-                    >
-                      <Icon className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-xs font-medium text-gray-600">
+                    <Icon className={`w-4 h-4 ${isSelected ? "text-white" : "text-gray-400"}`} />
+                    <span className={`text-[11px] font-medium ${isSelected ? "text-white" : "text-gray-500"}`}>
                       {cfg.label}
                     </span>
                   </button>
@@ -448,56 +362,59 @@ const AddMealModal = ({ meal, onClose, onConfirm, isLoading }) => {
 
           {/* Date/Time */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
               Date & Time
             </label>
             <input
               type="datetime-local"
               value={mealTime}
               onChange={(e) => setMealTime(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 outline-none transition-all"
+              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-gray-900 text-sm focus:border-gray-400 focus:ring-0 outline-none transition-colors"
             />
           </div>
 
           {/* Nutrition Summary */}
-          <div className="bg-gray-50 rounded-xl p-4">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">
-              Nutrition Summary
-            </h4>
-            <div className="grid grid-cols-4 gap-3 text-center">
-              <div>
-                <p className="text-lg font-bold text-orange-600">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+              Nutrition
+            </label>
+            <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl">
+              <div className="text-center">
+                <span className="text-base font-semibold text-gray-900">
                   {meal?.calories}
-                </p>
-                <p className="text-xs text-gray-500">Calories</p>
+                </span>
+                <span className="text-[10px] text-gray-400 block">kcal</span>
               </div>
-              <div>
-                <p className="text-lg font-bold text-red-600">
+              <div className="w-px h-8 bg-gray-200" />
+              <div className="text-center">
+                <span className="text-base font-semibold text-gray-900">
                   {meal?.protein_g}g
-                </p>
-                <p className="text-xs text-gray-500">Protein</p>
+                </span>
+                <span className="text-[10px] text-gray-400 block">protein</span>
               </div>
-              <div>
-                <p className="text-lg font-bold text-amber-600">
+              <div className="w-px h-8 bg-gray-200" />
+              <div className="text-center">
+                <span className="text-base font-semibold text-gray-900">
                   {meal?.carbs_g}g
-                </p>
-                <p className="text-xs text-gray-500">Carbs</p>
+                </span>
+                <span className="text-[10px] text-gray-400 block">carbs</span>
               </div>
-              <div>
-                <p className="text-lg font-bold text-blue-600">
+              <div className="w-px h-8 bg-gray-200" />
+              <div className="text-center">
+                <span className="text-base font-semibold text-gray-900">
                   {meal?.fat_g}g
-                </p>
-                <p className="text-xs text-gray-500">Fat</p>
+                </span>
+                <span className="text-[10px] text-gray-400 block">fat</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex gap-3 p-6 pt-0">
+        <div className="flex gap-3 p-5 border-t border-gray-100">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+            className="flex-1 px-4 py-2.5 rounded-xl text-gray-600 font-medium text-sm hover:bg-gray-100 transition-colors"
           >
             Cancel
           </button>
@@ -510,17 +427,17 @@ const AddMealModal = ({ meal, onClose, onConfirm, isLoading }) => {
               })
             }
             disabled={isLoading}
-            className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium hover:shadow-lg hover:shadow-purple-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-2.5 rounded-xl bg-gray-900 text-white font-medium text-sm hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Adding...
+                <span>Adding...</span>
               </>
             ) : (
               <>
                 <Check className="w-4 h-4" />
-                Confirm & Add
+                <span>Add Meal</span>
               </>
             )}
           </button>
@@ -598,12 +515,12 @@ const SuggestionChip = ({ text, onClick }) => (
   </button>
 );
 
-// Enhanced Markdown Components
+// Enhanced Markdown Components with more spacing
 const MarkdownComponents = {
   code({ node, inline, className, children, ...props }) {
     const match = /language-(\w+)/.exec(className || "");
     return !inline && match ? (
-      <div className="my-4 rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+      <div className="my-6 rounded-xl overflow-hidden border border-gray-200 shadow-sm">
         <div className="bg-gray-100 px-4 py-2 text-xs font-medium text-gray-600 border-b">
           {match[1].toUpperCase()}
         </div>
@@ -628,7 +545,7 @@ const MarkdownComponents = {
   },
   table({ children }) {
     return (
-      <div className="my-4 overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+      <div className="my-6 overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
         <table className="w-full border-collapse">{children}</table>
       </div>
     );
@@ -662,16 +579,16 @@ const MarkdownComponents = {
     );
   },
   ul({ children }) {
-    return <ul className="my-3 space-y-2 list-none">{children}</ul>;
+    return <ul className="my-4 space-y-3 list-none">{children}</ul>;
   },
   ol({ children }) {
     return (
-      <ol className="my-3 space-y-2 list-decimal list-inside">{children}</ol>
+      <ol className="my-4 space-y-3 list-decimal list-inside">{children}</ol>
     );
   },
   li({ children, ordered }) {
     return (
-      <li className="flex items-start gap-2 text-gray-700">
+      <li className="flex items-start gap-3 text-gray-700 leading-relaxed">
         {!ordered && (
           <span className="mt-2 w-1.5 h-1.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex-shrink-0" />
         )}
@@ -681,14 +598,14 @@ const MarkdownComponents = {
   },
   h1({ children }) {
     return (
-      <h1 className="text-2xl font-bold text-gray-800 mt-6 mb-4 pb-2 border-b border-gray-200">
+      <h1 className="text-2xl font-bold text-gray-800 mt-8 mb-4 pb-3 border-b border-gray-200">
         {children}
       </h1>
     );
   },
   h2({ children }) {
     return (
-      <h2 className="text-xl font-semibold text-gray-800 mt-5 mb-3 flex items-center gap-2">
+      <h2 className="text-xl font-semibold text-gray-800 mt-6 mb-4 flex items-center gap-2">
         <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-pink-500 rounded-full" />
         {children}
       </h2>
@@ -696,17 +613,21 @@ const MarkdownComponents = {
   },
   h3({ children }) {
     return (
-      <h3 className="text-lg font-medium text-gray-800 mt-4 mb-2">
+      <h3 className="text-lg font-medium text-gray-800 mt-5 mb-3">
         {children}
       </h3>
     );
   },
   p({ children }) {
-    return <p className="text-gray-700 leading-relaxed my-2">{children}</p>;
+    return (
+      <p className="text-gray-700 leading-relaxed my-4 text-[15px]">
+        {children}
+      </p>
+    );
   },
   blockquote({ children }) {
     return (
-      <blockquote className="my-4 pl-4 border-l-4 border-purple-300 bg-purple-50/50 py-2 pr-4 rounded-r-lg italic text-gray-600">
+      <blockquote className="my-6 pl-4 border-l-4 border-purple-300 bg-purple-50/50 py-3 pr-4 rounded-r-lg italic text-gray-600">
         {children}
       </blockquote>
     );
@@ -730,7 +651,7 @@ const MarkdownComponents = {
     return <em className="italic text-gray-600">{children}</em>;
   },
   hr() {
-    return <hr className="my-6 border-t border-gray-200" />;
+    return <hr className="my-8 border-t border-gray-200" />;
   },
 };
 
@@ -807,9 +728,11 @@ export default function NutriGenieChat() {
 
   // Recommendation handling state
   const [addingMealId, setAddingMealId] = useState(null);
-  const [savedMeals, setSavedMeals] = useState([]);
+  const [savingMealId, setSavingMealId] = useState(null);
+  const [removedMeals, setRemovedMeals] = useState([]); // Track removed meals
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState(null);
+  const [selectedMealIndex, setSelectedMealIndex] = useState(null);
   const [isAddingMeal, setIsAddingMeal] = useState(false);
   const [toast, setToast] = useState(null);
 
@@ -864,20 +787,26 @@ export default function NutriGenieChat() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // Handle adding meal to log
-  const handleAddToLog = (recommendation) => {
+  // Handle adding meal to log - opens modal
+  const handleAddToLog = (recommendation, index) => {
     setSelectedMeal(recommendation);
+    setSelectedMealIndex(index);
     setShowAddModal(true);
   };
 
   // Confirm add meal to log
   const confirmAddMeal = async (mealData) => {
     setIsAddingMeal(true);
+    const mealId = `${selectedMeal.mealName}-${selectedMealIndex}`;
+    setAddingMealId(mealId);
+    
     try {
-      const response = await fetch("http://localhost:3000/api/meals", {
+      const response = await fetch("http://localhost:3000/api/meals/upcoming", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          status: "upcoming",
+          source: "chatbot",
           mealType: mealData.mealType,
           mealName: mealData.mealName,
           time: mealData.time,
@@ -896,30 +825,84 @@ export default function NutriGenieChat() {
         throw new Error("Failed to add meal");
       }
 
+      // Remove meal from chat after successful add
+      setRemovedMeals((prev) => [...prev, mealId]);
+      
       showToast(`${mealData.mealName} added to your meal log!`);
       setShowAddModal(false);
       setSelectedMeal(null);
+      setSelectedMealIndex(null);
     } catch (error) {
       console.error("Error adding meal:", error);
       showToast("Failed to add meal. Please try again.");
     } finally {
       setIsAddingMeal(false);
+      setAddingMealId(null);
     }
   };
 
-  // Handle saving recommendation
-  const handleSaveRecommendation = (recommendation, index) => {
+  // Handle saving recommendation (bookmark)
+  const handleSaveRecommendation = async (recommendation, index) => {
     const mealId = `${recommendation.mealName}-${index}`;
-    if (savedMeals.includes(mealId)) {
-      setSavedMeals((prev) => prev.filter((id) => id !== mealId));
-      showToast("Removed from saved meals");
-    } else {
-      setSavedMeals((prev) => [...prev, mealId]);
-      showToast("Saved for later!");
+    setSavingMealId(mealId);
+    
+    try {
+      const response = await fetch("http://localhost:3000/api/meals/recommendations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mealName: recommendation.mealName,
+          mealType: recommendation.mealType || "snack",
+          calories: recommendation.calories,
+          protein_g: recommendation.protein_g,
+          carbs_g: recommendation.carbs_g,
+          fat_g: recommendation.fat_g,
+          fiber_g: recommendation.fiber_g,
+          sugar_g: recommendation.sugar_g,
+          sodium_mg: recommendation.sodium_mg,
+          chatId: currentChatId,
+          notes: "Saved from chat recommendation",
+        }),
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save recommendation");
+      }
+
+      // Remove meal from chat after successful save
+      setRemovedMeals((prev) => [...prev, mealId]);
+      
+      showToast(`${recommendation.mealName} saved to recommendations!`);
+    } catch (error) {
+      console.error("Error saving recommendation:", error);
+      showToast("Failed to save recommendation. Please try again.");
+    } finally {
+      setSavingMealId(null);
     }
   };
 
-  // Send Message with streaming - Updated to handle recommendations
+  // Parse recommendations from loaded messages
+  const parseRecommendationsFromMessages = (loadedMessages) => {
+    const recs = {};
+    loadedMessages.forEach((msg, index) => {
+      if (msg.role === "assistant") {
+        // First check if recommendations are already attached to the message
+        if (msg.recommendations && msg.recommendations.length > 0) {
+          recs[index] = msg.recommendations;
+        } else {
+          // Try to parse from content
+          const { recommendations } = parseMessageContent(msg.content);
+          if (recommendations.length > 0) {
+            recs[index] = recommendations;
+          }
+        }
+      }
+    });
+    return recs;
+  };
+
+  // Send Message with streaming
   const handleSend = async (textOverride) => {
     const promptText = textOverride || input;
     if (!promptText.trim() || isStreaming) return;
@@ -1035,7 +1018,6 @@ export default function NutriGenieChat() {
                     });
                   }
 
-                  // Handle inline recommendations from first message
                   if (data.recommendations && data.recommendations.length > 0) {
                     setMessageRecommendations((prev) => ({
                       ...prev,
@@ -1045,7 +1027,6 @@ export default function NutriGenieChat() {
                   break;
 
                 case "recommendations":
-                  // Handle separate recommendations event
                   if (data.recommendations && data.recommendations.length > 0) {
                     setMessageRecommendations((prev) => ({
                       ...prev,
@@ -1055,7 +1036,6 @@ export default function NutriGenieChat() {
                   break;
 
                 case "done":
-                  // Try to parse final content for recommendations
                   const finalContent = accumulatedContentRef.current;
                   const { text: parsedText, recommendations } =
                     parseMessageContent(finalContent);
@@ -1066,7 +1046,6 @@ export default function NutriGenieChat() {
                       [assistantMessageIndex]: recommendations,
                     }));
 
-                    // Update message with clean text
                     setMessages((prev) => {
                       const updated = [...prev];
                       const lastIndex = updated.length - 1;
@@ -1190,7 +1169,7 @@ export default function NutriGenieChat() {
     }
   };
 
-  // Load chat from history
+  // Load chat from history - UPDATED to properly load recommendations
   const loadChat = async (chatId) => {
     if (chatId === currentChatId) {
       setSidebarOpen(false);
@@ -1200,7 +1179,8 @@ export default function NutriGenieChat() {
     setChatLoading(true);
     setChatOpen(true);
     setSidebarOpen(false);
-    setMessageRecommendations({}); // Clear recommendations when loading new chat
+    setMessageRecommendations({});
+    setRemovedMeals([]); // Reset removed meals when loading a new chat
 
     try {
       await loadChatFromStore(chatId);
@@ -1210,15 +1190,12 @@ export default function NutriGenieChat() {
         setCurrentChatTitle(chatInfo.title);
       }
 
-      // Load recommendations from messages if they exist
-      const loadedMessages = useChatStore.getState().messages;
-      const recs = {};
-      loadedMessages.forEach((msg, index) => {
-        if (msg.recommendations && msg.recommendations.length > 0) {
-          recs[index] = msg.recommendations;
-        }
-      });
-      setMessageRecommendations(recs);
+      // Wait for messages to be loaded, then parse recommendations
+      setTimeout(() => {
+        const loadedMessages = useChatStore.getState().messages;
+        const recs = parseRecommendationsFromMessages(loadedMessages);
+        setMessageRecommendations(recs);
+      }, 100);
     } catch (error) {
       console.error("Failed to load chat:", error);
     } finally {
@@ -1233,6 +1210,7 @@ export default function NutriGenieChat() {
     setSidebarOpen(false);
     accumulatedContentRef.current = "";
     setMessageRecommendations({});
+    setRemovedMeals([]); // Reset removed meals for new chat
     window.history.replaceState(null, "", "/chat");
   };
 
@@ -1257,8 +1235,21 @@ export default function NutriGenieChat() {
     h.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Get recommendations for a message
+  const getRecommendationsForMessage = (msg, index) => {
+    // First check messageRecommendations state
+    if (messageRecommendations[index]?.length > 0) {
+      return messageRecommendations[index];
+    }
+    // Then check if recommendations are attached to the message itself
+    if (msg.recommendations?.length > 0) {
+      return msg.recommendations;
+    }
+    return [];
+  };
+
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50 overflow-hidden relative">
+    <div className="flex h-screen bg-slate-50 overflow-hidden relative">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-300/20 rounded-full blur-3xl animate-pulse" />
@@ -1282,6 +1273,7 @@ export default function NutriGenieChat() {
           onClose={() => {
             setShowAddModal(false);
             setSelectedMeal(null);
+            setSelectedMealIndex(null);
           }}
           onConfirm={confirmAddMeal}
           isLoading={isAddingMeal}
@@ -1426,7 +1418,7 @@ export default function NutriGenieChat() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-700 truncate">
-                {user?.data?.username || "User"}
+                {user?.username || "User"}
               </p>
             </div>
           </div>
@@ -1531,121 +1523,106 @@ export default function NutriGenieChat() {
               </div>
             </div>
           ) : (
-            /* Chat Messages */
-            <div className="max-w-full mx-auto px-4 lg:px-6 py-6 space-y-6">
-              {messages.map((msg, i) => (
-                <div
-                  key={i}
-                  className={`flex ${
-                    msg.role === "user" ? "justify-end" : "justify-start"
-                  } animate-fadeIn`}
-                >
-                  <div
-                    className={`flex gap-3 max-w-[85%] lg:max-w-[75%] ${
-                      msg.role === "user" ? "flex-row-reverse" : ""
-                    }`}
-                  >
-                    {/* Avatar */}
-                    <div
-                      className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${
-                        msg.role === "user"
-                          ? "bg-gradient-to-br from-purple-600 to-pink-600"
-                          : "bg-gradient-to-br from-emerald-500 to-teal-600"
-                      }`}
-                    >
-                      {msg.role === "user" ? (
-                        <User className="w-5 h-5 text-white" />
-                      ) : (
-                        <Bot className="w-5 h-5 text-white" />
-                      )}
-                    </div>
+            /* Chat Messages - MORE SPACIOUS */
+            <div className="max-w-5xl mx-auto px-4 lg:px-8 py-8 space-y-8">
+              {messages.map((msg, i) => {
+                const recommendations = getRecommendationsForMessage(msg, i);
 
-                    {/* Message Bubble */}
+                return (
+                  <div
+                    key={i}
+                    className={`flex ${
+                      msg.role === "user" ? "justify-end" : "justify-start"
+                    } animate-fadeIn`}
+                  >
                     <div
-                      className={`relative group ${
-                        msg.role === "user" ? "order-first" : ""
+                      className={`flex gap-4 w-full ${
+                        msg.role === "user"
+                          ? "flex-row-reverse max-w-[85%] lg:max-w-[70%]"
+                          : "max-w-full"
                       }`}
                     >
+                      {/* Avatar */}
                       <div
-                        className={`px-5 py-4 rounded-2xl shadow-sm ${
+                        className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${
                           msg.role === "user"
-                            ? "bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-br-md"
-                            : "bg-white text-gray-800 rounded-bl-md border border-gray-100"
+                            ? "bg-gradient-to-br from-purple-600 to-pink-600"
+                            : "bg-gradient-to-br from-emerald-500 to-teal-600"
                         }`}
                       >
-                        {msg.role === "assistant" ? (
-                          msg.content ? (
-                            <div className="prose prose-sm max-w-none">
-                              <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                                components={MarkdownComponents}
-                              >
-                                {msg.content}
-                              </ReactMarkdown>
-                            </div>
-                          ) : (
-                            <TypingIndicator />
-                          )
+                        {msg.role === "user" ? (
+                          <User className="w-5 h-5 text-white" />
                         ) : (
-                          <p className="whitespace-pre-wrap">{msg.content}</p>
+                          <Bot className="w-5 h-5 text-white" />
                         )}
                       </div>
 
-                      {/* Recommendations Section - Only for assistant messages */}
-                      {msg.role === "assistant" &&
-                        messageRecommendations[i] &&
-                        messageRecommendations[i].length > 0 && (
-                          <RecommendationsSection
-                            recommendations={messageRecommendations[i]}
-                            onAddToLog={handleAddToLog}
-                            onSaveRecommendation={(rec) =>
-                              handleSaveRecommendation(
-                                rec,
-                                messageRecommendations[i].indexOf(rec)
-                              )
-                            }
-                            addingMealId={addingMealId}
-                            savedMeals={savedMeals}
-                          />
-                        )}
-
-                      {/* Also check msg.recommendations for loaded chats */}
-                      {msg.role === "assistant" &&
-                        msg.recommendations &&
-                        msg.recommendations.length > 0 &&
-                        !messageRecommendations[i] && (
-                          <RecommendationsSection
-                            recommendations={msg.recommendations}
-                            onAddToLog={handleAddToLog}
-                            onSaveRecommendation={(rec) =>
-                              handleSaveRecommendation(
-                                rec,
-                                msg.recommendations.indexOf(rec)
-                              )
-                            }
-                            addingMealId={addingMealId}
-                            savedMeals={savedMeals}
-                          />
-                        )}
-
-                      {/* Timestamp */}
-                      <p
-                        className={`text-xs text-gray-400 mt-1.5 ${
-                          msg.role === "user" ? "text-right" : ""
+                      {/* Message Content */}
+                      <div
+                        className={`flex-1 ${
+                          msg.role === "user" ? "order-first" : ""
                         }`}
                       >
-                        {msg.role === "user" ? "You" : "Nutrition Genie"} •{" "}
-                        {msg.timestamp
-                          ? new Date(msg.timestamp).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                          : "now"}
-                      </p>
+                        {/* Message Bubble */}
+                        <div
+                          className={`px-6 py-5 rounded-2xl shadow-sm ${
+                            msg.role === "user"
+                              ? "bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-br-md"
+                              : "bg-white text-gray-800 rounded-bl-md border border-gray-100"
+                          }`}
+                        >
+                          {msg.role === "assistant" ? (
+                            msg.content ? (
+                              <div className="prose prose-base max-w-none prose-headings:text-gray-800 prose-p:text-gray-700 prose-p:leading-relaxed">
+                                <ReactMarkdown
+                                  remarkPlugins={[remarkGfm]}
+                                  components={MarkdownComponents}
+                                >
+                                  {msg.content}
+                                </ReactMarkdown>
+                              </div>
+                            ) : (
+                              <TypingIndicator />
+                            )
+                          ) : (
+                            <p className="whitespace-pre-wrap text-[15px] leading-relaxed">
+                              {msg.content}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Recommendations Section - Only for assistant messages */}
+                        {msg.role === "assistant" &&
+                          recommendations.length > 0 && (
+                            <RecommendationsSection
+                              recommendations={recommendations}
+                              onAddToLog={handleAddToLog}
+                              onSaveRecommendation={handleSaveRecommendation}
+                              addingMealId={addingMealId}
+                              savingMealId={savingMealId}
+                              removedMeals={removedMeals}
+                            />
+                          )}
+
+                        {/* Timestamp */}
+                        <p
+                          className={`text-xs text-gray-400 mt-2 ${
+                            msg.role === "user" ? "text-right" : ""
+                          }`}
+                        >
+                          {msg.role === "user" ? "You" : "Nutrition Genie"} •{" "}
+                          {msg.timestamp
+                            ? new Date(msg.timestamp).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : "now"}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -1782,6 +1759,24 @@ export default function NutriGenieChat() {
           margin: 0;
           padding: 0;
           background: transparent;
+        }
+
+        .prose p {
+          margin-top: 1rem;
+          margin-bottom: 1rem;
+        }
+
+        .prose ul,
+        .prose ol {
+          margin-top: 1rem;
+          margin-bottom: 1rem;
+        }
+
+        .prose h1,
+        .prose h2,
+        .prose h3 {
+          margin-top: 1.5rem;
+          margin-bottom: 1rem;
         }
       `}</style>
     </div>
