@@ -9,8 +9,16 @@ const api = axios.create({
   withCredentials: true,
 });
 
+const getErrorMessage = (error, fallback) => {
+  return (
+    error.response?.data?.message ||
+    error.response?.data?.error ||
+    error.message ||
+    fallback
+  );
+};
+
 export const useMealStore = create((set, get) => ({
-  // State
   meals: [],
   recommendedMeals: [],
   upcomingMeals: [],
@@ -18,87 +26,68 @@ export const useMealStore = create((set, get) => ({
   stats: null,
   isLoading: false,
   error: null,
-  // State additions
-mealHistory: {
-  meals: [],
-  dailyStats: {},
-  weeklyStats: null,
-},
-historyLoading: false,
+  mealHistory: {
+    meals: [],
+    dailyStats: {},
+    weeklyStats: null,
+  },
+  historyLoading: false,
 
-  // ============= MEAL PREDICTION (Image Upload) =============
-  
-  // POST /meals - Upload image and get prediction
   sendMealData: async (formData) => {
     try {
       set({ isLoading: true, error: null });
-      console.log("Sending meal data to backend");
-      
+
       const response = await api.post("/meals", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-      
+
       set({ mealData: response.data.data, isLoading: false });
 
-      // Update localStorage
       localStorage.removeItem("mealData");
       localStorage.setItem("mealData", JSON.stringify(response.data.data));
 
-      console.log("Meal data sent successfully:", response.data);
       return response.data.data;
     } catch (error) {
-      set({ 
-        error: error.response?.data?.message || "Error sending meal data", 
-        isLoading: false 
-      });
-      console.error("Error sending meal data:", error);
+      const errorMessage = getErrorMessage(error, "Failed to analyze meal image");
+      set({ error: errorMessage, isLoading: false });
+      toast.error(errorMessage);
       throw error;
     }
   },
 
-  // ============= MEAL LOGGING =============
-
-  // POST /meals/log - Log a meal (eaten)
   logMeal: async (mealData) => {
     try {
       set({ isLoading: true, error: null });
-      console.log("Logging meal:", mealData);
-      
+
       const response = await api.post("/meals/log", mealData);
-      
+
       set((state) => ({
         meals: [response.data.meal, ...state.meals],
         stats: response.data.stats,
         isLoading: false,
       }));
 
-      // Clear mealData from localStorage after logging
       localStorage.removeItem("mealData");
       set({ mealData: null });
 
       toast.success("Meal logged successfully!");
       return response.data.meal;
     } catch (error) {
-      set({ 
-        error: error.response?.data?.message || "Failed to log meal", 
-        isLoading: false 
-      });
-      toast.error("Failed to log meal.");
-      console.error("Error logging meal:", error);
+      const errorMessage = getErrorMessage(error, "Failed to log meal");
+      set({ error: errorMessage, isLoading: false });
+      toast.error(errorMessage);
       throw error;
     }
   },
 
-  // POST /meals/save - Save a meal (alternative to log)
   saveMeal: async (mealData) => {
     try {
       set({ isLoading: true, error: null });
-      console.log("Saving meal data:", mealData);
-      
+
       const response = await api.post("/meals/save", mealData);
-      
+
       set((state) => ({
         meals: [response.data.meal, ...state.meals],
         stats: response.data.stats,
@@ -108,94 +97,74 @@ historyLoading: false,
       toast.success("Meal saved successfully!");
       return response.data.meal;
     } catch (error) {
-      set({ 
-        error: error.response?.data?.message || "Failed to save meal", 
-        isLoading: false 
-      });
-      toast.error("Failed to save meal.");
-      console.error("Error saving meal:", error);
+      const errorMessage = getErrorMessage(error, "Failed to save meal");
+      set({ error: errorMessage, isLoading: false });
+      toast.error(errorMessage);
       throw error;
     }
   },
 
-  // GET /meals/meals - Get today's eaten meals
   getMeals: async () => {
     try {
       set({ isLoading: true, error: null });
-      
+
       const response = await api.get("/meals/meals");
-      console.log("Fetched meals:", response.data.data);
-      
+
       set({ meals: response.data.data || [], isLoading: false });
       return response.data.data;
     } catch (error) {
-      set({ 
-        error: error.response?.data?.message || "Failed to fetch meals", 
-        isLoading: false 
-      });
-      toast.error("Failed to fetch meals.");
-      console.error("Error fetching meals:", error);
+      const errorMessage = getErrorMessage(error, "Failed to fetch meals");
+      set({ error: errorMessage, isLoading: false });
+      toast.error(errorMessage);
       return [];
     }
   },
 
-  // DELETE /meals/:mealId - Delete a meal
   deleteMeal: async (mealId) => {
     try {
       set({ isLoading: true, error: null });
-      
+
       await api.delete(`/meals/${mealId}`);
-      
+
       set((state) => ({
         meals: state.meals.filter((meal) => meal._id !== mealId),
         isLoading: false,
       }));
 
-      // Refresh stats after deletion
       get().getStats();
-      
-      toast.success("Meal deleted successfully.");
+
+      toast.success("Meal deleted successfully!");
       return true;
     } catch (error) {
-      set({ 
-        error: error.response?.data?.message || "Failed to delete meal", 
-        isLoading: false 
-      });
-      toast.error("Failed to delete meal.");
-      console.error("Error deleting meal:", error);
+      const errorMessage = getErrorMessage(error, "Failed to delete meal");
+      set({ error: errorMessage, isLoading: false });
+      toast.error(errorMessage);
       return false;
     }
   },
 
-  // ============= RECOMMENDATIONS =============
-
-  // GET /meals/recommendations - Get recommended meals
   getRecommendedMeals: async (limit = 50, page = 1) => {
     try {
       set({ isLoading: true, error: null });
-      
+
       const response = await api.get("/meals/recommendations", {
         params: { limit, page },
       });
-      console.log("Fetched recommended meals:", response.data.data);
-      
+
       set({ recommendedMeals: response.data.data || [], isLoading: false });
       return response.data;
     } catch (error) {
-      set({
-        error: error.response?.data?.message || "Failed to fetch recommendations",
-        isLoading: false,
-      });
-      console.error("Error fetching recommendations:", error);
+      const errorMessage = getErrorMessage(error, "Failed to fetch recommendations");
+      set({ error: errorMessage, isLoading: false });
+      toast.error(errorMessage);
       return { data: [], pagination: null };
     }
   },
 
-  // DELETE /meals/recommendations/:mealId - Delete a recommendation
   deleteRecommendedMeal: async (mealId) => {
     try {
       set({ isLoading: true, error: null });
-      
+
       await api.delete(`/meals/recommendations/${mealId}`);
 
       set((state) => ({
@@ -203,55 +172,49 @@ historyLoading: false,
         isLoading: false,
       }));
 
-      toast.success("Recommendation deleted successfully.");
+      toast.success("Recommendation removed successfully!");
       return true;
     } catch (error) {
-      set({
-        error: error.response?.data?.message || "Failed to delete recommendation",
-        isLoading: false,
-      });
-      toast.error("Failed to delete recommendation.");
+      const errorMessage = getErrorMessage(error, "Failed to delete recommendation");
+      set({ error: errorMessage, isLoading: false });
+      toast.error(errorMessage);
       return false;
     }
   },
-// PATCH /meals/upcoming/:mealId/reschedule - Reschedule an upcoming meal
-rescheduleUpcomingMeal: async (mealId, newScheduledTime) => {
-  try {
-    set({ isLoading: true, error: null });
-    console.log("Rescheduling upcoming meal:", mealId, "to:", newScheduledTime);
-    
-    const response = await api.patch(`/meals/upcoming/${mealId}/reschedule`, {
-      scheduledTime: newScheduledTime,
-    });
 
-    const rescheduledMeal = response.data.meal;
+  rescheduleUpcomingMeal: async (mealId, newScheduledTime) => {
+    try {
+      set({ isLoading: true, error: null });
 
-    set((state) => ({
-      upcomingMeals: state.upcomingMeals.map((meal) =>
-        meal._id === mealId 
-          ? { ...meal, scheduledTime: newScheduledTime, ...rescheduledMeal } 
-          : meal
-      ),
-      isLoading: false,
-    }));
+      const response = await api.patch(`/meals/upcoming/${mealId}/reschedule`, {
+        scheduledTime: newScheduledTime,
+      });
 
-    toast.success("Meal rescheduled successfully!");
-    return rescheduledMeal;
-  } catch (error) {
-    set({
-      error: error.response?.data?.message || "Failed to reschedule meal",
-      isLoading: false,
-    });
-    toast.error("Failed to reschedule meal.");
-    console.error("Error rescheduling meal:", error);
-    return null;
-  }
-},
-  // PATCH /meals/recommendations/:mealId/eat - Mark recommendation as eaten
+      const rescheduledMeal = response.data.meal;
+
+      set((state) => ({
+        upcomingMeals: state.upcomingMeals.map((meal) =>
+          meal._id === mealId
+            ? { ...meal, scheduledTime: newScheduledTime, ...rescheduledMeal }
+            : meal
+        ),
+        isLoading: false,
+      }));
+
+      toast.success("Meal rescheduled successfully!");
+      return rescheduledMeal;
+    } catch (error) {
+      const errorMessage = getErrorMessage(error, "Failed to reschedule meal");
+      set({ error: errorMessage, isLoading: false });
+      toast.error(errorMessage);
+      return null;
+    }
+  },
+
   eatRecommendedMeal: async (mealId, time = null) => {
     try {
       set({ isLoading: true, error: null });
-      console.log("Marking recommendation as eaten... Meal ID:", mealId);
+
       const response = await api.patch(`/meals/${mealId._id}/convert-to-upcoming`, {
         time: time || new Date(),
       });
@@ -261,53 +224,42 @@ rescheduleUpcomingMeal: async (mealId, newScheduledTime) => {
       set((state) => ({
         recommendedMeals: state.recommendedMeals.filter((meal) => meal._id !== mealId._id),
         upcomingMeals: [eatenMeal, ...state.upcomingMeals],
-
         stats: response.data.stats,
         isLoading: false,
       }));
 
-      toast.success("Meal marked as eaten!");
+      toast.success("Meal added to upcoming!");
       return eatenMeal;
     } catch (error) {
-      set({
-        error: error.response?.data?.message || "Failed to mark meal as eaten",
-        isLoading: false,
-      });
-      toast.error("Failed to mark meal as eaten.");
+      const errorMessage = getErrorMessage(error, "Failed to schedule meal");
+      set({ error: errorMessage, isLoading: false });
+      toast.error(errorMessage);
       return null;
     }
   },
 
-  // ============= UPCOMING MEALS =============
-
-  // GET /meals/upcoming - Get upcoming meals
   getUpcomingMeals: async (limit = 50, page = 1) => {
     try {
       set({ isLoading: true, error: null });
-      console.log("Fetching upcoming meals...");
-      
+
       const response = await api.get("/meals/upcoming", {
         params: { limit, page },
       });
-      console.log("Fetched upcoming meals:", response.data.data);
-      
+
       set({ upcomingMeals: response.data.data || [], isLoading: false });
       return response.data;
     } catch (error) {
-      set({
-        error: error.response?.data?.message || "Failed to fetch upcoming meals",
-        isLoading: false,
-      });
-      console.error("Error fetching upcoming meals:", error);
+      const errorMessage = getErrorMessage(error, "Failed to fetch upcoming meals");
+      set({ error: errorMessage, isLoading: false });
+      toast.error(errorMessage);
       return { data: [], pagination: null };
     }
   },
 
-  // DELETE /meals/upcoming/:mealId - Delete an upcoming meal
   deleteUpcomingMeal: async (mealId) => {
     try {
       set({ isLoading: true, error: null });
-      
+
       await api.delete(`/meals/upcoming/${mealId}`);
 
       set((state) => ({
@@ -315,23 +267,20 @@ rescheduleUpcomingMeal: async (mealId, newScheduledTime) => {
         isLoading: false,
       }));
 
-      toast.success("Upcoming meal deleted successfully.");
+      toast.success("Upcoming meal removed successfully!");
       return true;
     } catch (error) {
-      set({
-        error: error.response?.data?.message || "Failed to delete upcoming meal",
-        isLoading: false,
-      });
-      toast.error("Failed to delete upcoming meal.");
+      const errorMessage = getErrorMessage(error, "Failed to delete upcoming meal");
+      set({ error: errorMessage, isLoading: false });
+      toast.error(errorMessage);
       return false;
     }
   },
 
-  // PATCH /meals/upcoming/:mealId/eat - Mark upcoming meal as eaten
   eatUpcomingMeal: async (mealId, time = null) => {
     try {
       set({ isLoading: true, error: null });
-      
+
       const response = await api.patch(`/meals/upcoming/${mealId}/eat`, {
         time: time || new Date(),
       });
@@ -348,20 +297,17 @@ rescheduleUpcomingMeal: async (mealId, newScheduledTime) => {
       toast.success("Meal marked as eaten!");
       return eatenMeal;
     } catch (error) {
-      set({
-        error: error.response?.data?.message || "Failed to mark meal as eaten",
-        isLoading: false,
-      });
-      toast.error("Failed to mark meal as eaten.");
+      const errorMessage = getErrorMessage(error, "Failed to mark meal as eaten");
+      set({ error: errorMessage, isLoading: false });
+      toast.error(errorMessage);
       return null;
     }
   },
 
-  // PATCH /meals/upcoming/:mealId/skip - Skip an upcoming meal
   skipUpcomingMeal: async (mealId) => {
     try {
       set({ isLoading: true, error: null });
-      
+
       const response = await api.patch(`/meals/upcoming/${mealId}/skip`);
 
       set((state) => ({
@@ -371,303 +317,255 @@ rescheduleUpcomingMeal: async (mealId, newScheduledTime) => {
         isLoading: false,
       }));
 
-      toast.success("Meal skipped.");
+      toast.success("Meal skipped!");
       return response.data.meal;
     } catch (error) {
-      set({
-        error: error.response?.data?.message || "Failed to skip meal",
-        isLoading: false,
-      });
-      toast.error("Failed to skip meal.");
+      const errorMessage = getErrorMessage(error, "Failed to skip meal");
+      set({ error: errorMessage, isLoading: false });
+      toast.error(errorMessage);
       return null;
     }
   },
 
-  // ============= MEALS BY STATUS =============
-
-  // GET /meals/status/:status - Get meals by status
   getMealsByStatus: async (status, limit = 50, page = 1) => {
     try {
       set({ isLoading: true, error: null });
-      
+
       const response = await api.get(`/meals/status/${status}`, {
         params: { limit, page },
       });
-      
+
       set({ isLoading: false });
       return response.data;
     } catch (error) {
-      set({
-        error: error.response?.data?.message || `Failed to fetch ${status} meals`,
-        isLoading: false,
-      });
-      console.error(`Error fetching ${status} meals:`, error);
+      const errorMessage = getErrorMessage(error, `Failed to fetch ${status} meals`);
+      set({ error: errorMessage, isLoading: false });
+      toast.error(errorMessage);
       return { data: [], pagination: null };
     }
   },
 
-  // ============= NUTRITION STATS =============
-
-  // GET /meals/stats - Get today's nutrition stats
   getStats: async () => {
     try {
       set({ isLoading: true, error: null });
-      
+
       const response = await api.get("/meals/stats");
-      console.log("Fetched stats:", response.data.data);
-      
+
       set({ stats: response.data.data, isLoading: false });
       return response.data.data;
     } catch (error) {
       set({ isLoading: false });
-      
+
       if (error.response?.status === 404) {
-        // No stats for today yet - this is normal
         set({ stats: null });
         return null;
       }
-      
-      set({ error: error.response?.data?.message || "Failed to fetch stats" });
-      toast.error("Failed to fetch nutrition stats.");
-      console.error("Error fetching stats:", error);
+
+      const errorMessage = getErrorMessage(error, "Failed to fetch nutrition stats");
+      set({ error: errorMessage });
+      toast.error(errorMessage);
       return null;
     }
   },
-  // Add these to your useMealStore
 
+  getMealHistory: async (startDate, endDate) => {
+    try {
+      set({ historyLoading: true, error: null });
 
-
-// ============= MEAL HISTORY =============
-
-// GET /meals/history - Get meal history for date range
-getMealHistory: async (startDate, endDate) => {
-  try {
-    set({ historyLoading: true, error: null });
-    
-    const response = await api.get("/meals/history", {
-      params: { 
-        startDate: startDate.toISOString(), 
-        endDate: endDate.toISOString() 
-      },
-    });
-    
-    console.log("Fetched meal history:", response.data.data);
-    
-    set((state) => ({
-      mealHistory: {
-        ...state.mealHistory,
-        meals: response.data.data.meals,
-        dailyStats: response.data.data.dailyStats,
-      },
-      historyLoading: false,
-    }));
-    
-    return response.data.data;
-  } catch (error) {
-    set({
-      error: error.response?.data?.message || "Failed to fetch meal history",
-      historyLoading: false,
-    });
-    console.error("Error fetching meal history:", error);
-    return { meals: [], dailyStats: {} };
-  }
-},
-
-// GET /meals/history/stats - Get aggregated stats for date range
-getWeeklyStats: async (startDate, endDate) => {
-  try {
-    set({ historyLoading: true, error: null });
-    
-    const response = await api.get("/meals/history/stats", {
-      params: { 
-        startDate: startDate.toISOString(), 
-        endDate: endDate.toISOString() 
-      },
-    });
-    
-    console.log("Fetched weekly stats:", response.data.data);
-    
-    set((state) => ({
-      mealHistory: {
-        ...state.mealHistory,
-        weeklyStats: response.data.data,
-      },
-      historyLoading: false,
-    }));
-    
-    return response.data.data;
-  } catch (error) {
-    set({
-      error: error.response?.data?.message || "Failed to fetch weekly stats",
-      historyLoading: false,
-    });
-    console.error("Error fetching weekly stats:", error);
-    return null;
-  }
-},
-
-// Combined fetch for meal history page
-fetchMealHistoryData: async (startDate, endDate) => {
-  try {
-    set({ historyLoading: true, error: null });
-    
-    const [historyResponse, statsResponse] = await Promise.all([
-      api.get("/meals/history", {
-        params: { 
-          startDate: startDate.toISOString(), 
-          endDate: endDate.toISOString() 
+      const response = await api.get("/meals/history", {
+        params: {
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
         },
-      }),
-      api.get("/meals/history/stats", {
-        params: { 
-          startDate: startDate.toISOString(), 
-          endDate: endDate.toISOString() 
+      });
+
+      set((state) => ({
+        mealHistory: {
+          ...state.mealHistory,
+          meals: response.data.data.meals,
+          dailyStats: response.data.data.dailyStats,
         },
-      }),
-    ]);
-    
-    const historyData = historyResponse.data.data;
-    const statsData = statsResponse.data.data;
-    
-    set({
-      mealHistory: {
+        historyLoading: false,
+      }));
+
+      return response.data.data;
+    } catch (error) {
+      const errorMessage = getErrorMessage(error, "Failed to fetch meal history");
+      set({ error: errorMessage, historyLoading: false });
+      toast.error(errorMessage);
+      return { meals: [], dailyStats: {} };
+    }
+  },
+
+  getWeeklyStats: async (startDate, endDate) => {
+    try {
+      set({ historyLoading: true, error: null });
+
+      const response = await api.get("/meals/history/stats", {
+        params: {
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+        },
+      });
+
+      set((state) => ({
+        mealHistory: {
+          ...state.mealHistory,
+          weeklyStats: response.data.data,
+        },
+        historyLoading: false,
+      }));
+
+      return response.data.data;
+    } catch (error) {
+      const errorMessage = getErrorMessage(error, "Failed to fetch weekly stats");
+      set({ error: errorMessage, historyLoading: false });
+      toast.error(errorMessage);
+      return null;
+    }
+  },
+
+  fetchMealHistoryData: async (startDate, endDate) => {
+    try {
+      set({ historyLoading: true, error: null });
+
+      const [historyResponse, statsResponse] = await Promise.all([
+        api.get("/meals/history", {
+          params: {
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+          },
+        }),
+        api.get("/meals/history/stats", {
+          params: {
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+          },
+        }),
+      ]);
+
+      const historyData = historyResponse.data.data;
+      const statsData = statsResponse.data.data;
+
+      set({
+        mealHistory: {
+          meals: historyData.meals,
+          dailyStats: historyData.dailyStats,
+          weeklyStats: statsData,
+        },
+        historyLoading: false,
+      });
+
+      return {
         meals: historyData.meals,
         dailyStats: historyData.dailyStats,
         weeklyStats: statsData,
-      },
-      historyLoading: false,
-    });
-    
-    return {
-      meals: historyData.meals,
-      dailyStats: historyData.dailyStats,
-      weeklyStats: statsData,
-    };
-  } catch (error) {
+      };
+    } catch (error) {
+      const errorMessage = getErrorMessage(error, "Failed to fetch meal history");
+      set({ error: errorMessage, historyLoading: false });
+      toast.error(errorMessage);
+      return { meals: [], dailyStats: {}, weeklyStats: null };
+    }
+  },
+
+  clearMealHistory: () => {
     set({
-      error: error.response?.data?.message || "Failed to fetch meal history",
-      historyLoading: false,
+      mealHistory: {
+        meals: [],
+        dailyStats: {},
+        weeklyStats: null,
+      },
     });
-    console.error("Error fetching meal history data:", error);
-    return { meals: [], dailyStats: {}, weeklyStats: null };
-  }
-},
+  },
 
-// Clear meal history
-clearMealHistory: () => {
-  set({
-    mealHistory: {
-      meals: [],
-      dailyStats: {},
-      weeklyStats: null,
-    },
-  });
-},
-
-  // ============= GOALS =============
-
-  // POST /meals/goals - Save a goal (water or calorie)
   saveGoal: async (goalData) => {
     try {
       set({ isLoading: true, error: null });
-      
-      const response = await api.post("/meals/goals", goalData);
-      
-      // Refresh stats after setting goal
+
+      await api.post("/meals/goals", goalData);
+
       await get().getStats();
-      
+
       set({ isLoading: false });
       toast.success("Goal saved successfully!");
       return true;
     } catch (error) {
-      set({ 
-        error: error.response?.data?.message || "Failed to save goal", 
-        isLoading: false 
-      });
-      toast.error("Failed to save goal.");
-      console.error("Error saving goal:", error);
+      const errorMessage = getErrorMessage(error, "Failed to save goal");
+      set({ error: errorMessage, isLoading: false });
+      toast.error(errorMessage);
       return false;
     }
   },
 
-  // ============= WATER & CALORIES QUICK ADD =============
-
-  // POST /meals/add - Add water or calories
   addWaterOrCalories: async (data) => {
     try {
       set({ isLoading: true, error: null });
-      console.log("Adding:", data);
-      
+
       const response = await api.post("/meals/add", data);
-      
-      // Update stats with the new values
-      set((state) => ({
-        stats: response.data.stats,
-        isLoading: false,
-      }));
-      
-      const message = data.type === "water" 
-        ? "Water intake added successfully!" 
-        : "Calories added successfully!";
+
+      set({ stats: response.data.stats, isLoading: false });
+
+      const message =
+        data.type === "water"
+          ? "Water intake updated!"
+          : "Calories added successfully!";
       toast.success(message);
-      
+
       return response.data;
     } catch (error) {
-      set({ 
-        error: error.response?.data?.message || "Failed to update", 
-        isLoading: false 
-      });
-      toast.error("Failed to update.");
-      console.error("Error updating:", error);
+      const errorMessage = getErrorMessage(
+        error,
+        data.type === "water" ? "Failed to update water intake" : "Failed to add calories"
+      );
+      set({ error: errorMessage, isLoading: false });
+      toast.error(errorMessage);
       return null;
     }
   },
 
-  // ============= LOCAL STORAGE HELPERS =============
-
-  // Fetch meal data from localStorage
   fetchMealData: async () => {
     try {
       set({ isLoading: true });
-      console.log("Fetching meal data from localStorage");
-      
+
       const data = localStorage.getItem("mealData");
-      
+
       if (data) {
         const parsedData = JSON.parse(data);
         set({ mealData: parsedData, isLoading: false });
         return parsedData;
       }
-      
+
       set({ isLoading: false });
       return null;
     } catch (error) {
       set({ isLoading: false });
-      toast.error("Failed to load meal data from local storage");
-      console.error("Error fetching meal data:", error);
+      toast.error("Failed to load saved meal data");
       return null;
     }
   },
 
-  // Clear meal data from state and localStorage
   clearMealData: () => {
     localStorage.removeItem("mealData");
     set({ mealData: null });
   },
 
-  // ============= UTILITY =============
-
-  // Clear error
   clearError: () => set({ error: null }),
 
-  // Reset store
-  resetStore: () => set({
-    meals: [],
-    recommendedMeals: [],
-    upcomingMeals: [],
-    mealData: null,
-    stats: null,
-    isLoading: false,
-    error: null,
-  }),
+  resetStore: () =>
+    set({
+      meals: [],
+      recommendedMeals: [],
+      upcomingMeals: [],
+      mealData: null,
+      stats: null,
+      isLoading: false,
+      error: null,
+      mealHistory: {
+        meals: [],
+        dailyStats: {},
+        weeklyStats: null,
+      },
+      historyLoading: false,
+    }),
 }));

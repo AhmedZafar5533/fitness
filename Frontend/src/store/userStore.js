@@ -14,7 +14,7 @@ export const useUserStore = create((set) => ({
       set({ profile: response.data.data });
       return true;
     } catch (error) {
-      toast.error("Failed to fetch user profile.");
+      toast.error(error?.response?.data?.message || "Failed to fetch user profile.");
       console.error("Error fetching user profile:", error);
       throw error;
     }
@@ -28,7 +28,7 @@ export const useUserStore = create((set) => ({
       set({ profile: response.data.data });
       return true;
     } catch (error) {
-      toast.error("Failed to update user profile.");
+      toast.error(error?.response?.data?.message || "Failed to update user profile.");
       console.error("Error updating user profile:", error);
       throw error;
     }

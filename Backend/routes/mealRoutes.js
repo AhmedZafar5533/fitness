@@ -303,6 +303,7 @@ router.patch("/upcoming/:mealId/reschedule", async (req, res) => {
     const userId = req.user._id;
     const { mealId } = req.params;
     const { scheduledTime, mealType, notes } = req.body;
+    console.log(req.body)
 
     // Validation
     if (!scheduledTime) {

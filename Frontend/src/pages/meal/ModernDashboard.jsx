@@ -564,7 +564,7 @@ const UpcomingMealActionMenu = ({
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="relative">
+    <div className="z-40">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
