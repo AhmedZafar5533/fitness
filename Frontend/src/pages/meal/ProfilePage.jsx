@@ -619,16 +619,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleRefresh}
-              disabled={isLoading}
-              className="p-2.5 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50"
-              title="Refresh"
-            >
-              <RefreshCw
-                className={`w-4 h-4 text-slate-500 ${isLoading ? "animate-spin" : ""}`}
-              />
-            </button>
+
 
             <button
               onClick={handleExport}

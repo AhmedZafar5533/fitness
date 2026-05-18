@@ -753,6 +753,7 @@ export default function ModernDashboard() {
 
   // Active tab for the combined section
   const [activeTab, setActiveTab] = useState("recommended");
+  const [generatingMeals, setGeneratingMeals] = useState(false);
 
   // Zustand Store
   const {
@@ -768,6 +769,7 @@ export default function ModernDashboard() {
     recommendedMeals,
     getRecommendedMeals,
     deleteRecommendedMeal,
+    generateRecommendedMeals,
     eatRecommendedMeal:addRecommendedMealToLog,
     // Upcoming meals
     upcomingMeals,
@@ -781,6 +783,17 @@ export default function ModernDashboard() {
     error,
     clearError,
   } = useMealStore();
+
+  const handleGenerateRecommendations = async () => {
+    setGeneratingMeals(true);
+    try {
+      await generateRecommendedMeals();
+    } catch (err) {
+      console.error("Error generating recommendations:", err);
+    } finally {
+      setGeneratingMeals(false);
+    }
+  };
 
   // Local derived states
   const [waterIntake, setWaterIntake] = useState(0);
@@ -1725,9 +1738,28 @@ export default function ModernDashboard() {
             <div className="p-6">
               {activeTab === "recommended" ? (
                 <>
-                  <p className="text-sm text-gray-500 mb-4">
-                    Personalized meal suggestions based on your nutrition goals
-                  </p>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+                    <p className="text-sm text-gray-500">
+                      Personalized meal suggestions based on your nutrition goals
+                    </p>
+                    <button
+                      onClick={handleGenerateRecommendations}
+                      disabled={generatingMeals}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 text-purple-700 rounded-xl text-xs font-bold transition-all border border-purple-100 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                      {generatingMeals ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600" />
+                          <span>Generating AI Meals...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                          <span>Generate More Meals</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
 
                   {isLoading ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1748,18 +1780,33 @@ export default function ModernDashboard() {
                       ))}
                     </div>
                   ) : recommendedMeals.length === 0 ? (
-                    <div className="text-center py-12">
-                      <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Sparkles className="w-8 h-8 text-purple-600" />
+                    <div className="text-center py-12 bg-purple-50/20 rounded-2xl border border-dashed border-purple-100 p-6">
+                      <div className="w-16 h-16 bg-purple-100/70 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Sparkles className="w-8 h-8 text-purple-600 animate-pulse" />
                       </div>
-                      <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                      <h4 className="text-lg font-bold text-gray-900 mb-2">
                         No recommendations yet
                       </h4>
-                      <p className="text-sm text-gray-500 max-w-md mx-auto">
-                        Keep logging your meals to get personalized
-                        recommendations based on your nutrition goals and
-                        preferences.
+                      <p className="text-sm text-gray-500 max-w-md mx-auto mb-6">
+                        Get instant personalized meal suggestions based on your profile, calorie goals, and dietary preferences.
                       </p>
+                      <button
+                        onClick={handleGenerateRecommendations}
+                        disabled={generatingMeals}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-bold transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
+                      >
+                        {generatingMeals ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Generating Personalized Meals...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4" />
+                            <span>Generate Personalized Meals</span>
+                          </>
+                        )}
+                      </button>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

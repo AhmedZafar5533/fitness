@@ -182,6 +182,27 @@ export const useMealStore = create((set, get) => ({
     }
   },
 
+  generateRecommendedMeals: async () => {
+    try {
+      set({ isLoading: true, error: null });
+
+      const response = await api.post("/meals/generate-recommendations");
+
+      set((state) => ({
+        recommendedMeals: [...(response.data.data || []), ...state.recommendedMeals],
+        isLoading: false,
+      }));
+
+      toast.success("AI generated fresh personalized meals for you!");
+      return response.data.data;
+    } catch (error) {
+      const errorMessage = getErrorMessage(error, "Failed to generate recommendations");
+      set({ error: errorMessage, isLoading: false });
+      toast.error(errorMessage);
+      return [];
+    }
+  },
+
   rescheduleUpcomingMeal: async (mealId, newScheduledTime) => {
     try {
       set({ isLoading: true, error: null });

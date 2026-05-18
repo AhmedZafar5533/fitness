@@ -56,6 +56,10 @@ required: true
       min: [0, "Sodium cannot be negative"],
     },
     imagePath: String,
+    description: String,
+    tags: [String],
+    notes: String,
+    chatId: String,
   },
   { timestamps: true }
 );

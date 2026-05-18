@@ -17,6 +17,8 @@ import {
   ChevronRight,
   ChevronLeft,
   ArrowLeft,
+  Home,
+  Trash2,
   MessageSquare,
   Loader2,
   Bot,
@@ -694,6 +696,57 @@ const parseMessageContent = (content) => {
   return { text: content, recommendations: [] };
 };
 
+// Helper to extract partial "response" text block during streaming SSE chunks
+const extractResponseFromStreamingJson = (text) => {
+  if (!text) return "";
+  
+  const clean = text.replace(/```json?/gi, "").replace(/```/g, "").trim();
+  
+  try {
+    const match = clean.match(/\{[\s\S]*\}/);
+    if (match) {
+      const parsed = JSON.parse(match[0]);
+      if (parsed.response) return parsed.response;
+    }
+  } catch (e) {
+    // Not complete yet
+  }
+
+  // If it doesn't look like JSON at all, treat as plain markdown response
+  if (!clean.startsWith("{") && !clean.includes('"response"')) {
+    return clean;
+  }
+
+  // Extract from partial "response": "..."
+  const responsePropRegex = /"response"\s*:\s*"/;
+  const matchProp = clean.match(responsePropRegex);
+  if (matchProp) {
+    const startIndex = matchProp.index + matchProp[0].length;
+    const remaining = clean.slice(startIndex);
+    
+    let responseText = "";
+    let isEscaped = false;
+    for (let i = 0; i < remaining.length; i++) {
+      const char = remaining[i];
+      if (isEscaped) {
+        if (char === "n") responseText += "\n";
+        else if (char === "t") responseText += "\t";
+        else responseText += char;
+        isEscaped = false;
+      } else if (char === "\\") {
+        isEscaped = true;
+      } else if (char === '"') {
+        break;
+      } else {
+        responseText += char;
+      }
+    }
+    return responseText;
+  }
+  
+  return "";
+};
+
 export default function NutriGenieChat() {
   const navigate = useNavigate();
 
@@ -711,6 +764,7 @@ export default function NutriGenieChat() {
     clearCurrentChat,
     addMessage,
     updateLastMessage,
+    deleteChat,
     isLoading: storeLoading,
     setIsLoading,
   } = useChatStore();
@@ -1001,6 +1055,7 @@ export default function NutriGenieChat() {
                   if (data.text) {
                     accumulatedContentRef.current += data.text;
                     const newContent = accumulatedContentRef.current;
+                    const cleanDisplay = extractResponseFromStreamingJson(newContent);
 
                     setMessages((prev) => {
                       const updated = [...prev];
@@ -1011,7 +1066,7 @@ export default function NutriGenieChat() {
                       ) {
                         updated[lastIndex] = {
                           ...updated[lastIndex],
-                          content: newContent,
+                          content: cleanDisplay || newContent,
                         };
                       }
                       return updated;
@@ -1040,28 +1095,26 @@ export default function NutriGenieChat() {
                   const { text: parsedText, recommendations } =
                     parseMessageContent(finalContent);
 
-                  if (recommendations.length > 0) {
-                    setMessageRecommendations((prev) => ({
-                      ...prev,
-                      [assistantMessageIndex]: recommendations,
-                    }));
+                  setMessageRecommendations((prev) => ({
+                    ...prev,
+                    [assistantMessageIndex]: recommendations || [],
+                  }));
 
-                    setMessages((prev) => {
-                      const updated = [...prev];
-                      const lastIndex = updated.length - 1;
-                      if (
-                        lastIndex >= 0 &&
-                        updated[lastIndex]?.role === "assistant"
-                      ) {
-                        updated[lastIndex] = {
-                          ...updated[lastIndex],
-                          content: parsedText,
-                          recommendations: recommendations,
-                        };
-                      }
-                      return updated;
-                    });
-                  }
+                  setMessages((prev) => {
+                    const updated = [...prev];
+                    const lastIndex = updated.length - 1;
+                    if (
+                      lastIndex >= 0 &&
+                      updated[lastIndex]?.role === "assistant"
+                    ) {
+                      updated[lastIndex] = {
+                        ...updated[lastIndex],
+                        content: parsedText || finalContent,
+                        recommendations: recommendations || [],
+                      };
+                    }
+                    return updated;
+                  });
 
                   await getChatHistory();
                   break;
@@ -1100,6 +1153,7 @@ export default function NutriGenieChat() {
               if (data.text) {
                 accumulatedContentRef.current += data.text;
                 const newContent = accumulatedContentRef.current;
+                const cleanDisplay = extractResponseFromStreamingJson(newContent);
 
                 setMessages((prev) => {
                   const updated = [...prev];
@@ -1110,7 +1164,7 @@ export default function NutriGenieChat() {
                   ) {
                     updated[lastIndex] = {
                       ...updated[lastIndex],
-                      content: newContent,
+                      content: cleanDisplay || newContent,
                     };
                   }
                   return updated;
@@ -1200,6 +1254,15 @@ export default function NutriGenieChat() {
       console.error("Failed to load chat:", error);
     } finally {
       setChatLoading(false);
+    }
+  };
+
+  // Delete chat conversation
+  const handleDeleteChat = async (e, chatId) => {
+    e.stopPropagation(); // Prevent selecting the chat when clicking delete
+    const success = await deleteChat(chatId);
+    if (success && currentChatId === chatId) {
+      startNewChat();
     }
   };
 
@@ -1365,12 +1428,12 @@ export default function NutriGenieChat() {
           ) : (
             <div className="space-y-1">
               {filteredHistory.map((chat) => (
-                <button
+                <div
                   key={chat._id || chat.id}
                   onClick={() => loadChat(chat._id || chat.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group text-left ${
+                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group text-left cursor-pointer border border-transparent ${
                     currentChatId === (chat._id || chat.id)
-                      ? "bg-purple-100 border border-purple-200"
+                      ? "bg-purple-100 border-purple-200"
                       : "hover:bg-purple-50"
                   }`}
                 >
@@ -1403,8 +1466,18 @@ export default function NutriGenieChat() {
                       {formatDate(chat.createdAt || chat.date)}
                     </p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-purple-500 group-hover:translate-x-0.5 transition-all opacity-0 group-hover:opacity-100" />
-                </button>
+
+                  {/* Deletion action */}
+                  <button
+                    onClick={(e) => handleDeleteChat(e, chat._id || chat.id)}
+                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 shrink-0"
+                    title="Delete Conversation"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+
+                  <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-purple-500 group-hover:translate-x-0.5 transition-all opacity-100 group-hover:opacity-0 shrink-0" />
+                </div>
               ))}
             </div>
           )}
@@ -1436,6 +1509,14 @@ export default function NutriGenieChat() {
               title="Go back"
             >
               <ArrowLeft className="w-5 h-5 text-gray-600 group-hover:text-purple-600 transition-colors" />
+            </button>
+
+            <button
+              onClick={() => navigate("/")}
+              className="p-2 hover:bg-gray-100 rounded-xl transition-colors group flex items-center justify-center"
+              title="Go to Home Dashboard"
+            >
+              <Home className="w-5 h-5 text-gray-600 group-hover:text-purple-600 transition-colors" />
             </button>
 
             <button
@@ -1578,7 +1659,7 @@ export default function NutriGenieChat() {
                                   remarkPlugins={[remarkGfm]}
                                   components={MarkdownComponents}
                                 >
-                                  {msg.content}
+                                  {parseMessageContent(msg.content).text}
                                 </ReactMarkdown>
                               </div>
                             ) : (

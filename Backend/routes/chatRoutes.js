@@ -268,6 +268,7 @@ ${nutritionContext}`;
     // Parse the full response for summary and recommendations
     let parsedSummary = fullResponse.slice(0, 150);
     let recommendations = [];
+    let cleanTextResponse = fullResponse;
 
     try {
       const cleanText = fullResponse
@@ -279,6 +280,7 @@ ${nutritionContext}`;
 
       parsedSummary = parsedJSON.summary || parsedSummary;
       recommendations = parsedJSON.recommendations || [];
+      cleanTextResponse = parsedJSON.response || cleanTextResponse;
 
       // Validate recommendations against schema
       recommendations = recommendations
@@ -305,7 +307,7 @@ ${nutritionContext}`;
     await Message.create({
       chatId: chat._id,
       role: "assistant",
-      content: fullResponse,
+      content: cleanTextResponse,
       summary: parsedSummary,
       recommendations: recommendations,
     });
@@ -347,14 +349,36 @@ router.get("/history", ensureAuthenticated, async (req, res) => {
 router.get("/:chatId", ensureAuthenticated, async (req, res) => {
   const { chatId } = req.params;
   try {
-    const chat = await Message.find({ chatId }).sort({ createdAt: 1 });
-    if (!chat.length) {
+    // Verify that the chat conversation exists and belongs to the authenticated user
+    const chatExists = await Chat.findOne({ _id: chatId, userId: req.user._id });
+    if (!chatExists) {
       return res.status(404).json({ message: "Chat not found" });
     }
-    res.status(200).json(chat);
+
+    const messages = await Message.find({ chatId }).sort({ createdAt: 1 });
+    res.status(200).json(messages);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to load chat" });
+  }
+});
+
+router.delete("/:chatId", ensureAuthenticated, async (req, res) => {
+  const { chatId } = req.params;
+  try {
+    // Delete the chat document belonging to the user
+    const chat = await Chat.findOneAndDelete({ _id: chatId, userId: req.user._id });
+    if (!chat) {
+      return res.status(404).json({ message: "Chat not found" });
+    }
+
+    // Cascade delete all messages in this chat conversation
+    await Message.deleteMany({ chatId });
+
+    res.status(200).json({ message: "Conversation deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting chat conversation:", err);
+    res.status(500).json({ message: "Failed to delete chat" });
   }
 });
 
